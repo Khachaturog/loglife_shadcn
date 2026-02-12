@@ -164,7 +164,7 @@ export function DeedsListPage() {
                     </CardHeader>
                     <CardContent className="pt-0">
                       <div className="flex gap-2">
-                        <Button variant="outline" size="sm" asChild onClick={(e: React.MouseEvent) => e.preventDefault()}>
+                        <Button variant="outline" size="sm" asChild>
                           <Link to={`/deeds/${deed.id}/fill`} onClick={(e) => e.stopPropagation()}>
                             Добавить запись
                           </Link>

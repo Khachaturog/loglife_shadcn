@@ -46,8 +46,24 @@ git push -u origin main
 
 1. В репозитории: **Settings** → **Pages**.
 2. В блоке **Build and deployment**:
-   - **Source**: выберите **GitHub Actions**.
+   - **Source**: обязательно выберите **GitHub Actions** (не «Deploy from a branch»).
 3. Сохраните (остальное менять не нужно).
+
+Если оставить «Deploy from a branch», GitHub будет отдавать исходники из репозитория, а не собранное приложение — в итоге в консоли будет 404 на `/src/main.tsx`.
+
+---
+
+## Ошибка «Setup GitHub Pages» / «Get Pages site failed»
+
+Если в workflow шаг **Setup GitHub Pages** падает с ошибкой:
+
+```
+Error: Get Pages site failed. Please verify that the repository has Pages enabled
+and configured to build using GitHub Actions...
+Error: HttpError: Not Found
+```
+
+значит Pages ещё не настроен или выбран неправильный источник. **Шаг 3** выполнен некорректно или не выполнен: в **Settings** → **Pages** принудительно выберите **Source: GitHub Actions**. После этого перезапустите workflow (Actions → Deploy to GitHub Pages → Run workflow).
 
 ---
 
@@ -106,3 +122,13 @@ npx vite preview
 ```
 
 Откройте в браузере `http://localhost:4173/loglife_shadcn/` — должно вести себя как на GitHub Pages.
+
+---
+
+## Ошибка 404 на /src/main.tsx
+
+Если в консоли браузера видите `GET .../src/main.tsx net::ERR_ABORTED 404`:
+
+- Сайт отдаётся **не из артефакта** workflow, а из исходников репозитория.
+- Зайдите в **Settings** → **Pages** и в **Source** выберите **GitHub Actions** (не «Deploy from a branch»).
+- Дождитесь зелёного выполнения workflow во вкладке **Actions**, затем обновите страницу по адресу **https://khachaturog.github.io/loglife_shadcn/** (обязательно с путём `/loglife_shadcn/`).
