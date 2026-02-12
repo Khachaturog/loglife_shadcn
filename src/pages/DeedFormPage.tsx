@@ -187,25 +187,25 @@ export function DeedFormPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-2">
+    <div className="-mx-4 flex w-full flex-col space-y-6" style={{ width: '100%' }}>
+      <div className="flex w-full items-center gap-2">
         <Button variant="ghost" size="icon" asChild>
           <Link to={id ? `/deeds/${id}` : '/'} aria-label="Назад">
             <ArrowLeft className="h-4 w-4" />
           </Link>
         </Button>
-        <h1 className="text-2xl font-bold tracking-tight">
+        <h1 className="w-full text-2xl font-bold tracking-tight">
           {isNew ? 'Новое дело' : 'Редактирование дела'}
         </h1>
       </div>
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <Card>
+      <form onSubmit={handleSubmit} className="w-full space-y-6">
+        <Card className="w-full">
           <CardHeader>
             <CardTitle>Основная информация</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex gap-4">
-              <div className="w-20">
+            <div className="flex w-full gap-4">
+              <div className="w-16">
                 <Label htmlFor="emoji">Эмодзи</Label>
                 <Input
                   id="emoji"
@@ -214,7 +214,7 @@ export function DeedFormPage() {
                   className="text-2xl"
                 />
               </div>
-              <div className="flex-1">
+              <div className="flex-1 w-full min-w-0">
                 <Label htmlFor="name">Название</Label>
                 <Input
                   id="name"
@@ -225,7 +225,7 @@ export function DeedFormPage() {
                 />
               </div>
             </div>
-            <div>
+            <div className="flex w-full flex-col gap-2 justify-start">
               <Label htmlFor="description">Описание</Label>
               <Textarea
                 id="description"
@@ -237,11 +237,11 @@ export function DeedFormPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Блоки вопрос-ответ</CardTitle>
+        <Card className="w-full border-0 shadow-none bg-transparent">
+          <CardHeader className="pt-3 px-3 pb-3">
+            <CardTitle className="flex flex-wrap">Блоки вопрос-ответ</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 p-0">
             {loading ? (
               <p className="text-muted-foreground text-sm">Загрузка…</p>
             ) : (
@@ -251,16 +251,31 @@ export function DeedFormPage() {
                     Пока нет блоков. Добавьте первый.
                   </p>
                 )}
-                <div className="space-y-4">
+                <div className="flex flex-col space-y-4">
                   {blocks.map((block, index) => (
                     <div
                       key={block.id ?? index}
-                      className="rounded-lg border p-4 space-y-3 bg-card/40"
+                      className="flex flex-col rounded-lg border p-4 space-y-3 bg-card/40"
                     >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-sm font-medium text-muted-foreground">
+                      <div className="flex w-full flex-col items-center justify-center gap-2 sm:flex-row sm:justify-center">
+                        <span className="w-full text-center text-sm font-medium text-muted-foreground sm:text-left">
                           Блок {index + 1}
                         </span>
+                        <div className="flex w-fit items-center justify-start gap-2">
+                          <Checkbox
+                            id={`required-${index}`}
+                            checked={block.is_required}
+                            onCheckedChange={(checked) =>
+                              updateBlock(index, (b) => ({
+                                ...b,
+                                is_required: checked === true,
+                              }))
+                            }
+                          />
+                          <Label htmlFor={`required-${index}`} className="w-[180px] flex cursor-pointer">
+                            Обязательное значение
+                          </Label>
+                        </div>
                         <div className="flex items-center gap-1">
                           <Button
                             type="button"
@@ -294,21 +309,8 @@ export function DeedFormPage() {
                         </div>
                       </div>
 
-                      <div className="grid gap-3 sm:grid-cols-[minmax(0,2fr)_minmax(0,1.4fr)_auto] items-start">
-                        <div className="space-y-1.5">
-                          <Label>Вопрос</Label>
-                          <Input
-                            value={block.title}
-                            onChange={(e) =>
-                              updateBlock(index, (b) => ({
-                                ...b,
-                                title: e.target.value,
-                              }))
-                            }
-                            placeholder="Например, Количество приседаний"
-                          />
-                        </div>
-                        <div className="space-y-1.5">
+                      <div className="flex w-full flex-col gap-3">
+                        <div className="min-w-0 w-full space-y-1.5">
                           <Label>Тип</Label>
                           <Select
                             value={block.block_type}
@@ -353,20 +355,18 @@ export function DeedFormPage() {
                             </SelectContent>
                           </Select>
                         </div>
-                        <div className="flex items-center gap-2 pt-6">
-                          <Checkbox
-                            id={`required-${index}`}
-                            checked={block.is_required}
-                            onCheckedChange={(checked) =>
+                        <div className="min-w-0 w-full space-y-1.5">
+                          <Label>Вопрос</Label>
+                          <Input
+                            value={block.title}
+                            onChange={(e) =>
                               updateBlock(index, (b) => ({
                                 ...b,
-                                is_required: checked === true,
+                                title: e.target.value,
                               }))
                             }
+                            placeholder="Например, Количество приседаний"
                           />
-                          <Label htmlFor={`required-${index}`} className="cursor-pointer">
-                            Обязательное значение
-                          </Label>
                         </div>
                       </div>
 
@@ -435,7 +435,7 @@ export function DeedFormPage() {
                               (opt, optIndex) => (
                                 <div
                                   key={opt.id}
-                                  className="flex items-center gap-2"
+                                  className="flex items-center gap-0"
                                 >
                                   <Input
                                     value={opt.label}
@@ -576,6 +576,7 @@ export function DeedFormPage() {
                             type="button"
                             variant="outline"
                             size="sm"
+                            className="w-full"
                             onClick={() =>
                               updateBlock(index, (b) => {
                                 const current =

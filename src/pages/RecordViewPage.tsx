@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Pencil } from 'lucide-react'
+import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { LoadingState } from '@/components/ui/loading-state'
 import { Checkbox } from '@/components/ui/checkbox'
 import { DatePicker } from '@/components/ui/date-picker'
 import { Input } from '@/components/ui/input'
@@ -126,13 +128,7 @@ export function RecordViewPage() {
     setAnswers((prev) => ({ ...prev, [blockId]: value }))
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12 text-muted-foreground">
-        Загрузка…
-      </div>
-    )
-  }
+  if (loading) return <LoadingState />
 
   if (!record) {
     return (
@@ -149,31 +145,27 @@ export function RecordViewPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" asChild>
-          <Link to={backLink} aria-label="Назад">
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-        </Button>
-        <h1 className="text-2xl font-bold tracking-tight flex-1">
-          Запись — {record.record_date} {record.record_time?.slice(0, 5)}
-        </h1>
-        {!editing ? (
-          <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
-            <Pencil className="h-4 w-4 mr-2" />
-            Редактировать
-          </Button>
-        ) : (
-          <div className="flex gap-2">
-            <Button variant="ghost" size="sm" onClick={() => setEditing(false)}>
-              Отмена
+      <PageHeader
+        backTo={backLink}
+        title={`Запись — ${record.record_date} ${record.record_time?.slice(0, 5) ?? ''}`}
+        actions={
+          !editing ? (
+            <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
+              <Pencil className="h-4 w-4 mr-2" />
+              Редактировать
             </Button>
-            <Button size="sm" onClick={handleSave} disabled={saving}>
-              {saving ? 'Сохранение…' : 'Сохранить'}
-            </Button>
-          </div>
-        )}
-      </div>
+          ) : (
+            <div className="flex gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setEditing(false)}>
+                Отмена
+              </Button>
+              <Button size="sm" onClick={handleSave} disabled={saving}>
+                {saving ? 'Сохранение…' : 'Сохранить'}
+              </Button>
+            </div>
+          )
+        }
+      />
 
       {editing ? (
         <>

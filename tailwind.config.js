@@ -7,6 +7,16 @@ export default {
   ],
   theme: {
     extend: {
+      container: {
+        center: true,
+        screens: {
+          sm: '640px',
+          md: '700px',
+          lg: '1024px',
+          xl: '1280px',
+          '2xl': '1536px',
+        },
+      },
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',

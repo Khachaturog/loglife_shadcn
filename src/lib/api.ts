@@ -11,7 +11,14 @@ import type {
 } from '@/types/database'
 import { toast } from 'sonner'
 
+let cachedUserId: string | null = null
+
+export function setApiUserId(uid: string | null): void {
+  cachedUserId = uid
+}
+
 async function getUserId(): Promise<string | null> {
+  if (cachedUserId) return cachedUserId
   const { data: { session } } = await supabase.auth.getSession()
   return session?.user?.id ?? null
 }
@@ -218,6 +225,58 @@ export const api = {
         throw error
       }
       return data ?? []
+    },
+
+    /** Записи по нескольким делам одним запросом (для главной и истории). */
+    async recordsByDeedIds(deedIds: string[]): Promise<Record<string, (RecordRow & { record_answers?: RecordAnswerRow[] })[]>> {
+      if (deedIds.length === 0) return {}
+      const uid = await getUserIdOrThrow()
+      const { data: deeds } = await supabase.from('deeds').select('id').eq('user_id', uid).in('id', deedIds)
+      const allowedIds = new Set((deeds ?? []).map((d) => d.id))
+      const idsToFetch = deedIds.filter((id) => allowedIds.has(id))
+      if (idsToFetch.length === 0) return Object.fromEntries(deedIds.map((id) => [id, []]))
+
+      const { data, error } = await supabase
+        .from('records')
+        .select('*, record_answers(*)')
+        .in('deed_id', idsToFetch)
+        .order('record_date', { ascending: false })
+        .order('record_time', { ascending: false })
+      if (error) {
+        toast.error(error.message ?? 'Ошибка загрузки записей')
+        throw error
+      }
+      const byId: Record<string, (RecordRow & { record_answers?: RecordAnswerRow[] })[]> = {}
+      for (const id of deedIds) byId[id] = []
+      for (const r of data ?? []) {
+        const list = byId[r.deed_id] ?? []
+        list.push(r as RecordRow & { record_answers?: RecordAnswerRow[] })
+        byId[r.deed_id] = list
+      }
+      for (const id of deedIds) {
+        (byId[id] ?? []).sort((a, b) => {
+          const d = b.record_date.localeCompare(a.record_date)
+          if (d !== 0) return d
+          return (b.record_time ?? '').toString().localeCompare((a.record_time ?? '').toString())
+        })
+      }
+      return byId
+    },
+
+    /** Все записи по всем делам пользователя с информацией о деле (для истории). */
+    async listAllRecordsWithDeedInfo(): Promise<(RecordRow & { record_answers?: RecordAnswerRow[]; deeds?: { emoji: string; name: string } | null })[]> {
+      const uid = await getUserIdOrThrow()
+      const { data, error } = await supabase
+        .from('records')
+        .select('*, record_answers(*), deeds!inner(emoji, name)')
+        .eq('deeds.user_id', uid)
+        .order('record_date', { ascending: false })
+        .order('record_time', { ascending: false })
+      if (error) {
+        toast.error(error.message ?? 'Ошибка загрузки истории')
+        throw error
+      }
+      return (data ?? []) as (RecordRow & { record_answers?: RecordAnswerRow[]; deeds?: { emoji: string; name: string } | null })[]
     },
 
     async createRecord(

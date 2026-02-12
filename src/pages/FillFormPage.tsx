@@ -3,6 +3,7 @@ import { Link, useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { LoadingState } from '@/components/ui/loading-state'
 import { Checkbox } from '@/components/ui/checkbox'
 import { DatePicker } from '@/components/ui/date-picker'
 import { Input } from '@/components/ui/input'
@@ -131,9 +132,7 @@ export function FillFormPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12 text-muted-foreground">
-        Загрузка…
-      </div>
+      <LoadingState />
     )
   }
 
@@ -149,7 +148,7 @@ export function FillFormPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full">
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="icon" asChild>
           <Link to={`/deeds/${deedId}`} aria-label="Назад">
@@ -168,7 +167,7 @@ export function FillFormPage() {
         </p>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4 mt-0">
         <Card>
           <CardHeader>
             <CardTitle>Дата и время</CardTitle>
