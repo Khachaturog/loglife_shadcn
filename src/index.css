@@ -1,6 +1,19 @@
+@import "react-day-picker/style.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Calendar/DatePicker - override react-day-picker variables to match theme */
+.rdp-root {
+  --rdp-accent-color: hsl(var(--primary));
+  --rdp-accent-background-color: hsl(var(--accent));
+  --rdp-day-width: 2.5rem;
+  --rdp-day-height: 2.5rem;
+  --rdp-day_button-width: 2.25rem;
+  --rdp-day_button-height: 2.25rem;
+  --rdp-selected-border: 2px solid hsl(var(--primary));
+}
 
 @layer base {
   :root {
@@ -53,7 +66,24 @@
   * {
     @apply border-border;
   }
+  html {
+    width: 100%;
+  }
   body {
     @apply bg-background text-foreground antialiased;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    margin-left: 16px;
+    margin-right: 16px;
+  }
+  #root {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
   }
 }

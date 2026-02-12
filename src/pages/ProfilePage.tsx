@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Download, LogOut } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Download, LogOut } from 'lucide-react'
+import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuth } from '@/lib/auth-context'
@@ -33,24 +34,17 @@ export function ProfilePage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" asChild>
-          <Link to="/" aria-label="Назад">
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-        </Button>
-        <h1 className="text-2xl font-bold tracking-tight">Профиль</h1>
-      </div>
+    <div className="space-y-6 w-full">
+      <PageHeader title="Профиль" />
       <Card>
         <CardHeader>
           <CardTitle>Аккаунт</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex flex-row items-center gap-4">
           {user?.email && (
-            <p className="text-sm text-muted-foreground">{user.email}</p>
+            <p className="w-full text-sm text-muted-foreground">{user.email}</p>
           )}
-          <Button variant="outline" className="mt-3" onClick={handleSignOut}>
+          <Button variant="outline" onClick={handleSignOut}>
             <LogOut className="h-4 w-4 mr-2" />
             Выйти
           </Button>
