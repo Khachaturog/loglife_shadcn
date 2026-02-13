@@ -39,7 +39,7 @@ function DatePicker({
           aria-expanded={open}
           disabled={disabled}
           className={cn(
-            'w-full justify-start text-left font-normal',
+            'mt-0 w-full justify-start text-left font-normal',
             !date && 'text-muted-foreground',
             className
           )}

@@ -27,12 +27,12 @@ export function RecordCard({ record, variant = 'deed' }: RecordCardProps) {
   if (variant === 'history' && 'deed' in record && record.deed) {
     return (
       <Link to={`/records/${record.id}`}>
-        <Card className="hover:bg-accent/50 transition-colors">
-          <CardContent className="py-3 px-4 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+        <Card className="w-full hover:bg-accent/50 transition-colors">
+          <CardContent className="w-full py-3 px-4 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
             <span className="text-sm font-medium shrink-0">
               {(record.record_time ?? '').toString().slice(0, 5)}
             </span>
-            <span className="text-sm truncate">
+            <span className="text-sm truncate w-fit">
               {record.deed.emoji} {record.deed.name}
             </span>
             <span className="text-muted-foreground text-sm truncate sm:ml-auto">

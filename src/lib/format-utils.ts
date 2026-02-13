@@ -15,7 +15,7 @@ export function previewAnswer(value: ValueJson | null | undefined, maxTextLen = 
   if (!value) return '—'
   if ('number' in value && value.number !== undefined) return String(value.number)
   if ('text' in value && value.text) return value.text.length > maxTextLen ? value.text.slice(0, maxTextLen) + '…' : value.text
-  if ('optionId' in value) return '✓'
+  if ('optionId' in value) return '✅'
   if ('optionIds' in value && Array.isArray(value.optionIds)) return value.optionIds.length ? `✓ ${value.optionIds.length}` : '—'
   if ('scaleValue' in value) return String(value.scaleValue)
   if ('yesNo' in value) return value.yesNo ? 'Да' : 'Нет'

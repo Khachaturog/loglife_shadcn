@@ -173,7 +173,7 @@ export function FillFormPage() {
             <CardTitle>Дата и время</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-4">
-            <div className="space-y-2 min-w-[200px]">
+            <div className="flex flex-col gap-2 min-w-[200px]">
               <Label>Дата</Label>
               <DatePicker
                 date={recordDate ? new Date(recordDate + 'T00:00:00') : undefined}
