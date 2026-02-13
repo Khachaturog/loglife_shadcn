@@ -15,8 +15,8 @@ export function DeedCard({ deed, records }: DeedCardProps) {
 
   return (
     <Card className="transition-colors hover:bg-accent/50">
-      <Link to={`/deeds/${deed.id}`} className="block">
-        <CardContent className="flex flex-row items-center justify-center gap-3 pt-3 pb-3">
+      <CardContent className="flex flex-row items-center justify-center gap-3 pt-3 pb-3">
+        <Link to={`/deeds/${deed.id}`} className="flex flex-1 min-w-0 items-center gap-3 outline-none [&:focus-visible]:ring-2 [&:focus-visible]:ring-ring [&:focus-visible]:ring-offset-2 rounded-md">
           <span className="text-2xl shrink-0 h-full" aria-hidden>
             {deed.emoji}
           </span>
@@ -26,13 +26,13 @@ export function DeedCard({ deed, records }: DeedCardProps) {
               {today} сегодня · {total} всего
             </p>
           </div>
-          <Button variant="outline" size="sm" className="shrink-0" asChild>
-            <Link to={`/deeds/${deed.id}/fill`} onClick={(e) => e.stopPropagation()}>
-              Добавить запись
-            </Link>
-          </Button>
-        </CardContent>
-      </Link>
+        </Link>
+        <Button variant="outline" size="sm" className="shrink-0" asChild>
+          <Link to={`/deeds/${deed.id}/fill`}>
+            Добавить запись
+          </Link>
+        </Button>
+      </CardContent>
     </Card>
   )
 }

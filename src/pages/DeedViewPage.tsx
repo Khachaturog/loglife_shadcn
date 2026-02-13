@@ -76,24 +76,22 @@ export function DeedViewPage() {
 
       <Card>
         <CardHeader>
-          <div className="flex flex-wrap gap-2 pt-0">
-            <Button asChild>
-              <Link to={`/deeds/${id}/fill`}>
+          <div className="flex flex-nowrap gap-2 pt-0">
+            <Button asChild className="w-full">
+              <Link to={`/deeds/${id}/fill`} className="w-full">
                 <Plus className="h-4 w-4 mr-2" />
-                Добавить запись
+                Добавить
               </Link>
             </Button>
-            <Button variant="outline" asChild>
+            <Button variant="outline" size="icon" asChild aria-label="Редактировать">
               <Link to={`/deeds/${id}/edit`}>
-                <Pencil className="h-4 w-4 mr-2" />
-                Редактировать дело
+                <Pencil className="h-4 w-4" />
               </Link>
             </Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="destructive">
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Удалить дело
+                <Button variant="destructive" size="icon" aria-label="Удалить">
+                  <Trash2 className="h-4 w-4" />
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>

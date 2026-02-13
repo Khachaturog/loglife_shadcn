@@ -30,9 +30,9 @@ export function TimePicker({
   }
 
   return (
-    <div className="w-full">
+    <div className="w-full flex flex-col gap-2">
       {label && (
-        <Label htmlFor={id} className="mb-2 block">
+        <Label htmlFor={id} className="h-fit block">
           {label}
         </Label>
       )}
@@ -44,7 +44,7 @@ export function TimePicker({
           value={value}
           onChange={handleChange}
           placeholder={placeholder}
-          className={cn("pl-10", className)}
+          className={cn("pl-10 h-9", className)}
           disabled={disabled}
         />
       </div>

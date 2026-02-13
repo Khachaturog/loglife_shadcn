@@ -18,7 +18,7 @@ export function PageHeader({ backTo, title, actions }: PageHeaderProps) {
           </Link>
         </Button>
       )}
-      <h1 className="text-2xl font-bold tracking-tight flex-1 truncate w-full">
+      <h1 className="text-2xl font-bold tracking-tight flex-1 truncate min-w-0 w-full flex">
         {title}
       </h1>
       {actions}

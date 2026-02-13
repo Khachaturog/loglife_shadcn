@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Pencil } from 'lucide-react'
+import { ArrowLeft, Check, Pencil, X } from 'lucide-react'
 import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -144,23 +144,40 @@ export function RecordViewPage() {
   const backLink = record.deed_id ? `/deeds/${record.deed_id}` : '/'
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full">
       <PageHeader
         backTo={backLink}
-        title={`Запись — ${record.record_date} ${record.record_time?.slice(0, 5) ?? ''}`}
+        title={<span className="block truncate">{`${record.record_date} в ${record.record_time?.slice(0, 5) ?? ''}`}</span>}
         actions={
           !editing ? (
-            <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
-              <Pencil className="h-4 w-4 mr-2" />
-              Редактировать
+            <Button variant="outline" size="icon" onClick={() => setEditing(true)} title="Редактировать">
+              <Pencil className="h-4 w-4" />
             </Button>
           ) : (
             <div className="flex gap-2">
-              <Button variant="ghost" size="sm" onClick={() => setEditing(false)}>
-                Отмена
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-9"
+                onClick={() => setEditing(false)}
+                title="Отмена"
+                aria-label="Отмена"
+              >
+                <X className="size-4" />
               </Button>
-              <Button size="sm" onClick={handleSave} disabled={saving}>
-                {saving ? 'Сохранение…' : 'Сохранить'}
+              <Button
+                size="icon"
+                className="size-9"
+                onClick={handleSave}
+                disabled={saving}
+                title={saving ? 'Сохранение…' : 'Сохранить'}
+                aria-label={saving ? 'Сохранение…' : 'Сохранить'}
+              >
+                {saving ? (
+                  <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden />
+                ) : (
+                  <Check className="size-4" />
+                )}
               </Button>
             </div>
           )
@@ -169,20 +186,20 @@ export function RecordViewPage() {
 
       {editing ? (
         <>
-          <Card>
+          <Card className="mt-0">
             <CardHeader>
               <CardTitle className="text-base">Дата и время</CardTitle>
             </CardHeader>
             <CardContent className="flex flex-wrap gap-4">
-              <div className="space-y-2 min-w-[200px]">
-                <Label>Дата</Label>
+              <div className="flex flex-col gap-2 min-w-[150px]">
+                <Label className="w-full">Дата</Label>
                 <DatePicker
                   date={recordDate ? new Date(recordDate + 'T00:00:00') : undefined}
                   onDateChange={(d) => setRecordDate(d ? d.toISOString().slice(0, 10) : '')}
                   placeholder="Выберите дату"
                 />
               </div>
-              <div className="min-w-[140px]">
+              <div className="flex flex-col gap-0 min-w-[140px] h-fit">
                 <TimePicker
                   id="record_time"
                   label="Время"
@@ -326,7 +343,7 @@ export function RecordViewPage() {
         </>
       ) : (
         <>
-          <Card>
+          <Card className="mt-0">
             <CardHeader>
               <CardTitle className="text-base">Дата и время</CardTitle>
             </CardHeader>

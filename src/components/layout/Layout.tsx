@@ -14,7 +14,7 @@ export function Layout({ children }: LayoutProps) {
   return (
     <>
       <header className="hidden md:flex md:flex-col md:justify-start md:items-center sticky top-0 z-10 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60" style={{ width: '100%' }}>
-        <div className="container flex h-14 items-center pl-0 pr-0 gap-4 w-full" style={{ maxWidth: '700px' }}>
+        <div className="container flex h-14 items-center pl-0 pr-0 gap-4 w-full min-w-0 max-w-[700px]">
           <Link
             to="/"
             className={cn(
@@ -50,7 +50,7 @@ export function Layout({ children }: LayoutProps) {
         </div>
       </header>
       <div className="min-h-screen flex flex-col justify-start items-center bg-background w-full max-w-[700px] mx-auto">
-        <main className="flex-1 w-full px-0 py-6 pb-20 md:pb-6 flex flex-col justify-start items-center gap-0">
+        <main className="flex-1 w-full max-w-[700px] px-0 py-6 pb-20 md:pb-6 flex flex-col justify-start items-center gap-4">
           {children}
         </main>
         <TabBar />
