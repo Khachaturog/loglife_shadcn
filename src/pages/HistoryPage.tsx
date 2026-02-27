@@ -1,20 +1,26 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Box, Flex, Heading, Text } from '@radix-ui/themes'
 import { api } from '@/lib/api'
-import type { RecordRow } from '@/types/database'
 import { RecordCard } from '@/components/RecordCard'
-import { ErrorState } from '@/components/ui/error-state'
-import { LoadingState } from '@/components/ui/loading-state'
-import { formatDate } from '@/lib/format-utils'
+import type { BlockRow, RecordRow } from '@/types/database'
+import { formatDate, pluralRecords } from '@/lib/format-utils'
+import styles from './HistoryPage.module.css'
 
-type RecordWithDeed = (RecordRow & { record_answers?: { value_json: unknown }[] }) & {
-  deed?: { emoji: string; name: string }
+type RecordWithDeed = (RecordRow & { record_answers?: { block_id: string; value_json: unknown }[] }) & {
+  deed?: { emoji: string; name: string; blocks?: BlockRow[] }
 }
 
+/**
+ * Страница истории записей.
+ * Показывает все записи пользователя, сгруппированные по дате, с превью ответов.
+ */
 export function HistoryPage() {
+  // --- Состояние ---
   const [recordsWithDeed, setRecordsWithDeed] = useState<RecordWithDeed[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // --- Загрузка записей ---
   useEffect(() => {
     let cancelled = false
     api.deeds
@@ -22,11 +28,11 @@ export function HistoryPage() {
       .then((records) => {
         if (cancelled) return
         const all: RecordWithDeed[] = records.map((r) => {
-          const row = r as { deeds?: { emoji: string; name: string } | null; deed?: { emoji: string; name: string } | null }
+          const row = r as { deeds?: { emoji: string; name: string; blocks?: BlockRow[] } | null; deed?: { emoji: string; name: string; blocks?: BlockRow[] } | null }
           const deedInfo = row.deeds ?? row.deed
           return {
             ...r,
-            deed: deedInfo ? { emoji: deedInfo.emoji ?? '', name: deedInfo.name ?? '' } : undefined,
+            deed: deedInfo ? { emoji: deedInfo.emoji ?? '', name: deedInfo.name ?? '', blocks: deedInfo.blocks ?? [] } : undefined,
           }
         })
         all.sort((a, b) => {
@@ -37,7 +43,14 @@ export function HistoryPage() {
         setRecordsWithDeed(all)
       })
       .catch((e) => {
-        if (!cancelled) setError(e?.message ?? 'Ошибка загрузки')
+        if (!cancelled) {
+          const msg = e?.message ?? ''
+          if (msg.includes('Failed to fetch') || msg.includes('fetch')) {
+            setError('Нет связи с сервером. Проверьте интернет и что приложение может обращаться к Supabase.')
+          } else {
+            setError(msg || 'Ошибка загрузки')
+          }
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -45,6 +58,7 @@ export function HistoryPage() {
     return () => { cancelled = true }
   }, [])
 
+  // --- Группировка по дате ---
   const byDate = useMemo(() => {
     const map = new Map<string, RecordWithDeed[]>()
     for (const r of recordsWithDeed) {
@@ -55,36 +69,56 @@ export function HistoryPage() {
     return Array.from(map.entries()).sort(([a], [b]) => b.localeCompare(a))
   }, [recordsWithDeed])
 
-  if (loading) return <LoadingState />
-  if (error) return <ErrorState message={error} />
+  // --- Рендер состояний ---
+  if (loading) {
+    return (
+      <Box p="4">
+        <Text>Загрузка…</Text>
+      </Box>
+    )
+  }
 
+  if (error) {
+    return (
+      <Box p="4">
+        <Text color="crimson">{error}</Text>
+      </Box>
+    )
+  }
+
+  // --- Основной контент ---
   return (
-    <div className="w-full flex flex-col gap-5">
-      <header className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold tracking-tight">История</h1>
-        <p className="text-sm text-muted-foreground">
-          Все записи по всем делам, сгруппированные по датам.
-        </p>
-      </header>
+    <Box p="4" className={styles.container}>
+      <Heading size="4" mb="4">
+        История — {pluralRecords(recordsWithDeed.length)}
+      </Heading>
 
       {byDate.length === 0 ? (
-        <p className="text-muted-foreground text-sm">Пока нет записей. Добавьте первую в любом деле.</p>
+        <Text as="p" color="gray">
+          Пока нет записей. Добавьте первую в любом деле.
+        </Text>
       ) : (
-        <div className="space-y-6">
+        <Flex direction="column" gap="4">
           {byDate.map(([date, records]) => (
-            <section key={date}>
-              <h2 className="text-lg font-semibold mb-3">{formatDate(date)}</h2>
-              <ul className="space-y-2">
+            <Box key={date}>
+              <Text as="p" weight="medium" size="2" mb="2">
+                {formatDate(date)} ({records.length})
+              </Text>
+              <Flex direction="column" gap="2">
                 {records.map((rec) => (
-                  <li key={rec.id}>
-                    <RecordCard record={rec} variant="history" />
-                  </li>
+                  <RecordCard
+                    key={rec.id}
+                    record={rec}
+                    blocks={rec.deed?.blocks ?? []}
+                    deedPrefix={rec.deed ? { emoji: rec.deed.emoji, name: rec.deed.name } : undefined}
+                    linkState={{ from: 'history' }}
+                  />
                 ))}
-              </ul>
-            </section>
+              </Flex>
+            </Box>
           ))}
-        </div>
+        </Flex>
       )}
-    </div>
+    </Box>
   )
 }

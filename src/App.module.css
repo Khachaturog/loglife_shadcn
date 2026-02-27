@@ -1,0 +1,28 @@
+/* Контейнер приложения */
+.app {
+  min-height: 100vh;
+}
+
+/* Основной контент */
+.main {
+  flex: 1;
+}
+
+/* Отступ снизу, когда панель видна */
+.mainWithTabBar {
+  padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+}
+
+/* Загрузка (глобальная и fallback) */
+.loading {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.suspenseFallback {
+  display: flex;
+  justify-content: center;
+  padding: 2rem;
+}

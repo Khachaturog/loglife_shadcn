@@ -1,0 +1,22 @@
+.container {
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-bottom: 1rem;
+}
+
+.counterArea {
+  padding: 3rem;
+  text-align: center;
+  font-size: 4rem;
+  font-weight: bold;
+  background: var(--gray-a2);
+  border-radius: var(--radius-3);
+  cursor: pointer;
+  user-select: none;
+}

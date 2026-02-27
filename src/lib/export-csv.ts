@@ -16,14 +16,13 @@ function formatValueForCsv(value: ValueJson): string {
   if ('optionIds' in value && Array.isArray(value.optionIds)) return value.optionIds.join('; ')
   if ('scaleValue' in value) return String(value.scaleValue)
   if ('yesNo' in value) return value.yesNo ? 'Да' : 'Нет'
+  if ('durationHms' in value) return (value as { durationHms: string }).durationHms ?? ''
   return ''
 }
 
 function getBlockOptions(block: BlockRow): { id: string; label: string }[] {
   const fromConfig = (block.config as BlockConfig | null)?.options
   if (fromConfig?.length) return fromConfig.map((o) => ({ id: o.id, label: o.label }))
-  const fromJoin = block.block_options
-  if (fromJoin?.length) return fromJoin.map((o) => ({ id: o.id, label: o.label }))
   return []
 }
 
@@ -41,7 +40,18 @@ function formatAnswerForCsv(value: ValueJson, block: BlockRow): string {
   return formatValueForCsv(value)
 }
 
-export async function exportAllToCsv(): Promise<string> {
+export interface ExportPeriod {
+  startDate?: string
+  endDate?: string
+}
+
+function isInPeriod(dateStr: string, period: ExportPeriod): boolean {
+  if (period.startDate && dateStr < period.startDate) return false
+  if (period.endDate && dateStr > period.endDate) return false
+  return true
+}
+
+export async function exportAllToCsv(period?: ExportPeriod): Promise<string> {
   const deeds = await api.deeds.list()
   const deedsWithBlocks: DeedWithBlocks[] = []
   for (const d of deeds) {
@@ -53,7 +63,6 @@ export async function exportAllToCsv(): Promise<string> {
     'deed_name',
     'record_date',
     'record_time',
-    'notes',
     ...Array.from({ length: MAX_BLOCK_COLUMNS }, (_, i) => `block_${i + 1}`),
   ].map(escapeCsvCell).join(',')
 
@@ -61,7 +70,10 @@ export async function exportAllToCsv(): Promise<string> {
 
   for (const deed of deedsWithBlocks) {
     const blocks = (deed.blocks ?? []).slice().sort((a, b) => a.sort_order - b.sort_order)
-    const records = await api.deeds.records(deed.id)
+    let records = await api.deeds.records(deed.id)
+    if (period && (period.startDate || period.endDate)) {
+      records = records.filter((r) => isInPeriod(r.record_date, period))
+    }
     const deedName = `${deed.emoji || ''} ${deed.name}`.trim()
 
     for (const rec of records) {
@@ -78,7 +90,6 @@ export async function exportAllToCsv(): Promise<string> {
         deedName,
         rec.record_date,
         (rec.record_time ?? '').toString().slice(0, 5),
-        (rec.notes ?? '').replace(/\r?\n/g, ' '),
         ...blockValues,
         ...Array(Math.max(0, MAX_BLOCK_COLUMNS - blockValues.length)).fill(''),
       ].map(escapeCsvCell)

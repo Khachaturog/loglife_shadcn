@@ -1,0 +1,9 @@
+<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel">
+<head><meta charset="UTF-8"></head>
+<body>
+<table border="1">
+<thead><tr><th>Дата</th><th>Значение</th><th>Комментарий</th><th>Ступень 1</th><th>Ступень 2</th><th>Ступень 3</th><th>Ступень 4</th></tr></thead>
+<tbody>
+<tr><td>2026-02-08</td><td>3</td><td>Аня. Поменял К2-К5-К7М</td><td></td><td></td><td></td><td></td></tr>
+<tr><td>2026-02-05</td><td>4</td><td>Моё. Поменял К2-К5-К50S-К7М</td><td></td><td></td><td></td><td></td></tr>
+</tbody></table></body></html>

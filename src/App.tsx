@@ -1,9 +1,9 @@
 import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
-import { Toaster } from '@/components/ui/sonner'
-import { Layout } from '@/components/layout/Layout'
+import { Box, Flex, Text } from '@radix-ui/themes'
 import { useAuth } from '@/lib/auth-context'
-import { LoadingState } from '@/components/ui/loading-state'
+import { TabBar, useTabBarVisible } from '@/components/TabBar'
+import styles from './App.module.css'
 
 const LoginPage = lazy(() => import('@/pages/LoginPage').then((m) => ({ default: m.LoginPage })))
 const DeedsListPage = lazy(() => import('@/pages/DeedsListPage').then((m) => ({ default: m.DeedsListPage })))
@@ -13,6 +13,8 @@ const FillFormPage = lazy(() => import('@/pages/FillFormPage').then((m) => ({ de
 const RecordViewPage = lazy(() => import('@/pages/RecordViewPage').then((m) => ({ default: m.RecordViewPage })))
 const ProfilePage = lazy(() => import('@/pages/ProfilePage').then((m) => ({ default: m.ProfilePage })))
 const HistoryPage = lazy(() => import('@/pages/HistoryPage').then((m) => ({ default: m.HistoryPage })))
+const WidgetsPage = lazy(() => import('@/pages/WidgetsPage').then((m) => ({ default: m.WidgetsPage })))
+const ClickerPage = lazy(() => import('@/pages/ClickerPage').then((m) => ({ default: m.ClickerPage })))
 
 function App() {
   const { user, loading } = useAuth()
@@ -21,9 +23,9 @@ function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background text-muted-foreground">
-        Загрузка…
-      </div>
+      <Box p="4" className={styles.loading}>
+        <Text>Загрузка…</Text>
+      </Box>
     )
   }
 
@@ -31,10 +33,18 @@ function App() {
     return <Navigate to={`/login?redirect=${encodeURIComponent(location.pathname + location.search)}`} replace />
   }
 
+  const showTabBar = useTabBarVisible()
+
   return (
-    <>
-      <Layout>
-        <Suspense fallback={<LoadingState />}>
+    <Flex direction="column" className={styles.app}>
+      <Box className={`${styles.main} ${showTabBar ? styles.mainWithTabBar : ''}`}>
+        <Suspense
+          fallback={
+            <Box p="4" className={styles.suspenseFallback}>
+              <Text>Загрузка…</Text>
+            </Box>
+          }
+        >
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/" element={<DeedsListPage />} />
@@ -43,13 +53,16 @@ function App() {
             <Route path="/deeds/:id/edit" element={<DeedFormPage />} />
             <Route path="/deeds/:id/fill" element={<FillFormPage />} />
             <Route path="/records/:id" element={<RecordViewPage />} />
+            <Route path="/widgets" element={<WidgetsPage />} />
+            <Route path="/widgets/clicker" element={<ClickerPage />} />
             <Route path="/history" element={<HistoryPage />} />
             <Route path="/profile" element={<ProfilePage />} />
           </Routes>
         </Suspense>
-      </Layout>
-      <Toaster richColors position="top-center" />
-    </>
+      </Box>
+
+      <TabBar />
+    </Flex>
   )
 }
 

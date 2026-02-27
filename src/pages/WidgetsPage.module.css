@@ -1,0 +1,12 @@
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.widgetLink {
+  display: block;
+  padding: 1rem;
+  text-decoration: none;
+  border: 1px solid var(--gray-a6);
+  border-radius: var(--radius-3);
+}

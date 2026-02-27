@@ -1,0 +1,87 @@
+.container {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* .backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-bottom: 1rem;
+  min-height: 44px;
+  padding: 0.5rem 0;
+} */
+
+.nameField {
+  flex: 1;
+}
+
+/* Блок карточки */
+
+.blockCard {
+  border: 1px solid var(--gray-a4);
+  border-radius: var(--radius-3);
+}
+
+/* Single select text field */
+
+.single_select_textField {
+  width: 100%;
+}
+
+.scaleTextField {
+  flex: 1;
+}
+
+/* Color picker | Пикер цвета*/
+
+.colorButton {
+  aspect-ratio: 1/1;
+  min-width: 44px;
+  border: 1px solid var(--gray-a2);
+  border-radius: var(--radius-3);
+  cursor: pointer;
+}
+
+.colorButton:hover {
+  border: 1px solid var(--gray-a8);
+}
+
+.colorInput {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: none;
+  outline: none;
+  border-radius: var(--radius-3);
+  cursor: pointer;
+  /* Убираем стандартную обводку браузера */
+  -webkit-appearance: none;
+  appearance: none;
+  background: none;
+}
+
+/* Убираем внутреннюю обводку у WebKit (Chrome, Safari) */
+.colorInput::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.colorInput::-webkit-color-swatch {
+  border: none;
+  border-radius: var(--radius-3);
+}
+
+/* Firefox */
+.colorInput::-moz-color-swatch {
+  border: none;
+  border-radius: var(--radius-3);
+}
+
+/* Block title */
+
+.blockTitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
