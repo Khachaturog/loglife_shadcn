@@ -2,11 +2,11 @@
 
 Проект настроен на сборку и публикацию через GitHub Actions.
 
-**Репозиторий:** [github.com/Khachaturog/loglife_shadcn](https://github.com/Khachaturog/loglife_shadcn)
+**Репозиторий:** `https://github.com/<username>/<repo-name>`
 
 После деплоя сайт будет доступен по адресу:
 
-**https://khachaturog.github.io/loglife_shadcn/**
+`https://<username>.github.io/<repo-name>/` (подставьте свой username и имя репозитория)
 
 ---
 
@@ -114,14 +114,14 @@ on:
 
 ## Локальная проверка сборки «как для GitHub Pages»
 
-Чтобы проверить сборку с тем же базовым путём, что и на Pages (для этого репозитория — `loglife_shadcn`):
+Чтобы проверить сборку с тем же базовым путём, что и на Pages:
 
 ```bash
-BASE_PATH=/loglife_shadcn/ npm run build
+BASE_PATH=/<repo-name>/ npm run build
 npx vite preview
 ```
 
-Откройте в браузере `http://localhost:4173/loglife_shadcn/` — должно вести себя как на GitHub Pages.
+Откройте в браузере `http://localhost:4173/<repo-name>/` — должно вести себя как на GitHub Pages.
 
 ---
 
@@ -131,4 +131,4 @@ npx vite preview
 
 - Сайт отдаётся **не из артефакта** workflow, а из исходников репозитория.
 - Зайдите в **Settings** → **Pages** и в **Source** выберите **GitHub Actions** (не «Deploy from a branch»).
-- Дождитесь зелёного выполнения workflow во вкладке **Actions**, затем обновите страницу по адресу **https://khachaturog.github.io/loglife_shadcn/** (обязательно с путём `/loglife_shadcn/`).
+- Дождитесь зелёного выполнения workflow во вкладке **Actions**, затем обновите страницу по адресу вашего сайта (обязательно с путём `/<repo-name>/`).

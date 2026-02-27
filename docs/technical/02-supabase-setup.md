@@ -47,7 +47,7 @@
 3. Откройте файл `supabase/migrations/20250212000000_initial_schema.sql` в редакторе на своём компьютере и **скопируйте весь его текст**.
 4. Вставьте скопированный SQL в окно запроса в Supabase.
 5. Нажмите **Run** (или Ctrl+Enter).
-6. Внизу должно появиться сообщение об успешном выполнении. В левом меню в **Table Editor** появятся таблицы: `deeds`, `blocks`, `block_options`, `records`, `record_answers`.
+6. Внизу должно появиться сообщение об успешном выполнении. В левом меню в **Table Editor** появятся таблицы: `deeds`, `blocks`, `records`, `record_answers`.
 
 ### Вариант B: через Supabase CLI (опционально)
 
@@ -98,10 +98,6 @@ supabase db push
 1. В корне проекта создайте файл `.env` (если его ещё нет).
 2. Скопируйте содержимое из `.env.example` и подставьте свои значения:
 
-```env
-VITE_SUPABASE_URL=https://xxxxxxxx.supabase.co
-VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-```
 
 3. Подставьте реальные **Project URL** и **anon public** key из раздела **API** в настройках проекта Supabase.
 4. Сохраните файл. Файл `.env` не коммитится в git (указан в `.gitignore`).
@@ -121,7 +117,7 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 ## 8. Проверка настройки
 
-1. Убедитесь, что миграция выполнена: в **Table Editor** есть таблицы `deeds`, `blocks`, `block_options`, `records`, `record_answers`.
+1. Убедитесь, что миграция выполнена: в **Table Editor** есть таблицы `deeds`, `blocks`, `records`, `record_answers`.
 2. Убедитесь, что в **Authentication → Policies** (или в **Table Editor** у каждой таблицы) включён RLS и есть политики для `deeds` и остальных таблиц (они создаются миграцией).
 3. В приложении задайте `.env`, запустите `npm run dev`, откройте приложение в браузере. После реализации входа залогиньтесь — список дел должен загружаться (сначала пустой); создание дела должно сохраняться в таблице `deeds` с вашим `user_id`.
 

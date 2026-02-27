@@ -1,38 +1,61 @@
 import { Link } from 'react-router-dom'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { Box, Card, Flex, IconButton, Text } from '@radix-ui/themes'
+import { PlusIcon } from '@radix-ui/react-icons'
 import type { DeedWithBlocks } from '@/types/database'
 import type { RecordRow, RecordAnswerRow } from '@/types/database'
 import { getDeedDisplayNumbers } from '@/lib/deed-utils'
+import styles from './DeedCard.module.css'
 
-interface DeedCardProps {
+type DeedCardProps = {
   deed: DeedWithBlocks
   records: (RecordRow & { record_answers?: RecordAnswerRow[] })[]
 }
 
+/**
+ * Карточка дела в списке.
+ * Левая часть (название + статистика) — ссылка на просмотр дела.
+ * Кнопка + — ссылка на форму добавления записи.
+ */
 export function DeedCard({ deed, records }: DeedCardProps) {
+  // today/total зависят от типа блоков: см. getDeedDisplayNumbers в deed-utils
   const { today, total } = getDeedDisplayNumbers(deed.blocks ?? [], records)
 
   return (
-    <Card className="transition-colors hover:bg-accent/50">
-      <CardContent className="flex flex-row items-center justify-center gap-3 pt-3 pb-3">
-        <Link to={`/deeds/${deed.id}`} className="flex flex-1 min-w-0 items-center gap-3 outline-none [&:focus-visible]:ring-2 [&:focus-visible]:ring-ring [&:focus-visible]:ring-offset-2 rounded-md">
-          <span className="text-2xl shrink-0 h-full" aria-hidden>
-            {deed.emoji}
-          </span>
-          <div className="flex-1 min-w-0">
-            <h2 className="font-semibold truncate">{deed.name}</h2>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              {today} сегодня · {total} всего
-            </p>
-          </div>
+    <Card>
+      <Flex align="center" justify="between" gap="3">
+        {/* Кликабельная область: переход на /deeds/:id */}
+        <Link
+          to={`/deeds/${deed.id}`}
+          className={styles.deedLink}
+        >
+          <Box>
+            <Text weight="medium">
+              {deed.emoji} {deed.name}
+              {deed.category && (
+                <Text as="span" color="gray">
+                  {' '}
+                  ({deed.category})
+                </Text>
+              )}
+            </Text>
+            <Text as="p" size="2" color="gray">
+              — {today} сегодня, {total} всего
+            </Text>
+          </Box>
         </Link>
-        <Button variant="outline" size="sm" className="shrink-0" asChild>
+        {/* Кнопка добавления записи: переход на /deeds/:id/fill */}
+        <IconButton
+          size="2"
+          variant="soft"
+          asChild
+          title="Добавить запись"
+          aria-label="Добавить запись"
+        >
           <Link to={`/deeds/${deed.id}/fill`}>
-            Добавить запись
+            <PlusIcon />
           </Link>
-        </Button>
-      </CardContent>
+        </IconButton>
+      </Flex>
     </Card>
   )
 }

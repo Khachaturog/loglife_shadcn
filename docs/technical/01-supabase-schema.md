@@ -4,6 +4,8 @@
 
 **Пошаговая настройка проекта Supabase** — см. [02-supabase-setup.md](02-supabase-setup.md).
 
+**План версионирования конфигов блоков** — см. [04-block-config-schema.md](04-block-config-schema.md).
+
 ## Таблицы
 
 ### deeds
@@ -15,6 +17,7 @@
 | emoji      | text        | Эмодзи/символ   |
 | name       | text        | Название        |
 | description| text        | Описание        |
+| category   | text        | Категория (опционально) |
 | created_at | timestamptz | default now()  |
 | updated_at | timestamptz | default now()  |
 
@@ -33,18 +36,6 @@
 | created_at | timestamptz |                 |
 | updated_at | timestamptz |                 |
 
-### block_options
-
-| Колонка    | Тип         | Описание        |
-|------------|-------------|-----------------|
-| id         | uuid PK     |                 |
-| block_id   | uuid FK → blocks |             |
-| label      | text        | Текст варианта  |
-| sort_order | int4        |                 |
-| deleted_at | timestamptz |                 |
-| created_at | timestamptz |                 |
-| updated_at | timestamptz |                 |
-
 ### records
 
 | Колонка     | Тип         | Описание        |
@@ -53,7 +44,6 @@
 | deed_id    | uuid FK → deeds |              |
 | record_date| date        |                 |
 | record_time| time        |                 |
-| notes      | text        |                 |
 | created_at | timestamptz |                 |
 | updated_at | timestamptz |                 |
 
@@ -65,16 +55,14 @@
 | record_id         | uuid FK → records |          |
 | block_id          | uuid FK → blocks |           |
 | value_json        | jsonb       | По типам блоков |
-| is_outdated       | boolean     | default false   |
-| snapshot_title    | text        | При удалении блока |
-| snapshot_deleted_at | timestamptz |              |
+| config_version_id | uuid        | Версия конфига на момент ответа |
 | created_at        | timestamptz |                 |
 | updated_at        | timestamptz |                 |
 
 ## RLS
 
 - deeds: пользователь видит/редактирует только строки с user_id = auth.uid().
-- blocks, block_options: доступ через deed (проверка deed.user_id).
+- blocks: доступ через deed (проверка deed.user_id).
 - records, record_answers: доступ через deed.
 
 Создайте политики в Supabase Dashboard (Table Editor → каждой таблице → RLS policies) или выполните SQL из `supabase/migrations/` после настройки Supabase CLI.

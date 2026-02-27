@@ -1,0 +1,29 @@
+/**
+ * Переопределение Air Datepicker под Radix Themes.
+ * Используем CSS-переменные Radix для согласованности с темой.
+ * color-panel-solid — непрозрачный фон (color-panel может быть полупрозрачным).
+ */
+.air-datepicker {
+  /* --adp-background-color: var(--color-panel-solid); */
+  --adp-background-color-hover: var(--gray-a3);
+  --adp-background-color-active: var(--gray-a4);
+  --adp-color: var(--gray-12);
+  --adp-color-secondary: var(--gray-11);
+  --adp-accent-color: var(--accent-9);
+  --adp-color-current-date: var(--accent-9);
+  --adp-border-color: var(--gray-a6);
+  --adp-border-color-inner: var(--gray-a4);
+  --adp-border-radius: var(--radius-3);
+  --adp-cell-background-color-selected: var(--accent-9);
+  --adp-cell-background-color-selected-hover: var(--accent-10);
+  --adp-cell-background-color-hover: var(--gray-a3);
+  --adp-btn-color: var(--accent-9);
+  --adp-btn-color-hover: var(--gray-12);
+  /* --adp-font-family: var(--default-font-family); */
+}
+
+/* Явно непрозрачный фон и z-index выше модалок/селектов */
+.air-datepicker {
+  /* background: var(--color-panel-solid) !important; */
+  z-index: 1000 !important;
+}

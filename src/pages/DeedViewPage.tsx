@@ -1,34 +1,30 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, Plus, Pencil, Trash2 } from 'lucide-react'
-import { PageHeader } from '@/components/PageHeader'
-import { RecordCard } from '@/components/RecordCard'
-import { Button } from '@/components/ui/button'
-import { Card, CardHeader } from '@/components/ui/card'
-import { ErrorState } from '@/components/ui/error-state'
-import { LoadingState } from '@/components/ui/loading-state'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog'
+import { Box, Button, Flex, Heading, Text } from '@radix-ui/themes'
+import { AppBar } from '@/components/AppBar'
+import { Pencil1Icon, PlusIcon, TrashIcon } from '@radix-ui/react-icons'
 import { api } from '@/lib/api'
+import { RecordCard } from '@/components/RecordCard'
 import type { DeedWithBlocks, RecordRow } from '@/types/database'
+import styles from './DeedViewPage.module.css'
+import { formatDate, pluralRecords, pluralDays } from '@/lib/format-utils'
+import { currentStreak, maxStreak, workdayWeekendCounts } from '@/lib/deed-analytics'
 
+/**
+ * Страница просмотра дела.
+ * Показывает заголовок, описание, аналитику (стрики, рабочие/выходные дни) и историю записей по датам.
+ */
 export function DeedViewPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+
+  // --- Состояние ---
   const [deed, setDeed] = useState<DeedWithBlocks | null>(null)
   const [records, setRecords] = useState<(RecordRow & { record_answers?: { block_id: string; value_json: unknown }[] })[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // --- Загрузка дела и записей ---
   useEffect(() => {
     if (!id) return
     let cancelled = false
@@ -48,85 +44,153 @@ export function DeedViewPage() {
     return () => { cancelled = true }
   }, [id])
 
+  // --- Удаление дела (с подтверждением) ---
   const handleDelete = async () => {
     if (!id) return
-    await api.deeds.delete(id)
-    navigate('/')
+    if (!confirm('Удалить дело? Все записи также будут удалены.')) return
+    try {
+      await api.deeds.delete(id)
+      navigate('/')
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Не удалось удалить дело'
+      setError(msg)
+    }
   }
 
-  if (loading) return <LoadingState />
-  if (error || !deed) {
+  // --- Вычисляемые данные ---
+  // Записи сгруппированы по дате, сортировка: новые сверху
+  const byDate = useMemo(() => {
+    const sorted = [...records].sort((a, b) => {
+      const d = b.record_date.localeCompare(a.record_date)
+      if (d !== 0) return d
+      return (b.record_time ?? '').toString().localeCompare((a.record_time ?? '').toString())
+    })
+    const map = new Map<string, typeof records>()
+    for (const r of sorted) {
+      const date = r.record_date
+      if (!map.has(date)) map.set(date, [])
+      map.get(date)!.push(r)
+    }
+    return Array.from(map.entries()).sort(([a], [b]) => b.localeCompare(a))
+  }, [records])
+
+  // Аналитика: стрики и распределение по рабочим/выходным (только если есть записи)
+  const analytics = useMemo(() => {
+    if (records.length === 0) return null
+    return {
+      currentStreak: currentStreak(records),
+      maxStreak: maxStreak(records),
+      workdayWeekend: workdayWeekendCounts(records),
+    }
+  }, [records])
+
+  // --- Рендер состояний загрузки и ошибки ---
+  if (loading) {
     return (
-      <div className="space-y-4">
-        <Button variant="ghost" asChild>
-          <Link to="/"><ArrowLeft className="h-4 w-4 mr-2" />Назад</Link>
-        </Button>
-        <ErrorState message={error ?? 'Дело не найдено'} />
-      </div>
+      <Box p="4">
+        <Text>Загрузка…</Text>
+      </Box>
     )
   }
 
-  return (
-    <div className="space-y-6 w-full">
-      <PageHeader backTo="/" title={<><span className="mr-2" aria-hidden>{deed.emoji}</span>{deed.name}</>} />
+  if (error || !deed) {
+    return (
+      <Box p="4">
+        <AppBar backHref="/" />
+        <Text as="p" color="crimson" mt="2">
+          {error ?? 'Дело не найдено'}
+        </Text>
+      </Box>
+    )
+  }
 
+  // --- Основной контент (кнопка «Назад» только в нижней панели) ---
+  return (
+    <Box p="4" className={styles.container}>
+      {/* Заголовок: эмодзи, название, категория */}
+      <Heading size="6" mb="1">
+        {deed.emoji} {deed.name}
+      </Heading>
+      {deed.category && (
+        <Text as="p" size="2" color="gray" mb="2">
+          Категория: {deed.category}
+        </Text>
+      )}
       {deed.description && (
-        <p className="text-muted-foreground text-sm whitespace-pre-wrap">{deed.description}</p>
+        <Text as="p" size="2" mb="4">
+          {deed.description}
+        </Text>
       )}
 
-      <Card>
-        <CardHeader>
-          <div className="flex flex-nowrap gap-2 pt-0">
-            <Button asChild className="w-full">
-              <Link to={`/deeds/${id}/fill`} className="w-full">
-                <Plus className="h-4 w-4 mr-2" />
-                Добавить
-              </Link>
-            </Button>
-            <Button variant="outline" size="icon" asChild aria-label="Редактировать">
-              <Link to={`/deeds/${id}/edit`}>
-                <Pencil className="h-4 w-4" />
-              </Link>
-            </Button>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive" size="icon" aria-label="Удалить">
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Удалить дело?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Все записи по этому делу также будут удалены. Это действие нельзя отменить.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Отмена</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                    Удалить
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
-        </CardHeader>
-      </Card>
+      {/* Действия: добавить запись, редактировать, удалить */}
+      <Flex gap="2" mb="4" wrap="wrap">
+        <Button asChild size="2">
+          <Link to={`/deeds/${id}/fill`}>
+            <PlusIcon /> Добавить
+          </Link>
+        </Button>
+        <Button asChild variant="soft" size="2">
+          <Link to={`/deeds/${id}/edit`}>
+            <Pencil1Icon /> Редактировать
+          </Link>
+        </Button>
+        <Button
+          variant="soft"
+          color="red"
+          size="2"
+          onClick={handleDelete}
+          aria-label="Удалить дело"
+        >
+          <TrashIcon /> Удалить
+        </Button>
+      </Flex>
 
-      <section className="w-full h-full flex flex-col gap-2">
-        <h2 className="text-lg font-semibold mb-0">История записей</h2>
-        {records.length === 0 ? (
-          <p className="text-muted-foreground text-sm h-full w-full">Пока нет записей. Добавьте первую.</p>
-        ) : (
-          <ul className="space-y-2">
-            {records.map((rec) => (
-              <li key={rec.id}>
-                <RecordCard record={rec} variant="deed" />
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-    </div>
+      {/* Блок аналитики: стрики и рабочие/выходные дни */}
+      {analytics && (
+        <Box py="3" className={styles.analyticsSection}>
+          <Heading size="3" mb="2">
+            Аналитика
+          </Heading>
+          <Text as="p" size="2" mb="1">
+            Текущий стрик: <Text weight="bold">{analytics.currentStreak}</Text> {pluralDays(analytics.currentStreak)},
+            максимальный стрик: <Text weight="bold">{analytics.maxStreak}</Text> {pluralDays(analytics.maxStreak)}.
+          </Text>
+          <Text as="p" size="2">
+            В рабочие дни: {pluralRecords(analytics.workdayWeekend.workday)}, в выходные:{' '}
+            {pluralRecords(analytics.workdayWeekend.weekend)}.
+          </Text>
+        </Box>
+      )}
+
+      {/* История записей по датам */}
+      <Heading size="3" mt="4" mb="2">
+        История — {pluralRecords(records.length)}
+      </Heading>
+
+      {records.length === 0 ? (
+        <Text as="p" color="gray">
+          Пока нет записей. Добавьте первую.
+        </Text>
+      ) : (
+        <Flex direction="column" gap="4">
+          {byDate.map(([date, dayRecords]) => (
+            <Box key={date}>
+              <Text as="p" weight="medium" size="2" mb="2">
+                {formatDate(date)} ({dayRecords.length})
+              </Text>
+              <Flex direction="column" gap="2">
+                {dayRecords.map((rec) => (
+                  <RecordCard
+                    key={rec.id}
+                    record={rec}
+                    blocks={deed.blocks ?? []}
+                  />
+                ))}
+              </Flex>
+            </Box>
+          ))}
+        </Flex>
+      )}
+    </Box>
   )
 }

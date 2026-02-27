@@ -1,0 +1,8 @@
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.analyticsSection {
+  border-top: 1px solid var(--gray-a6);
+}

@@ -4,6 +4,7 @@ import type {
   RecordAnswerRow,
   ValueJson,
 } from '@/types/database'
+import { todayLocalISO } from '@/lib/format-utils'
 
 // --- Логика отображения "N сегодня · N всего" на карточке дела ---
 //
@@ -21,16 +22,23 @@ import type {
 // Если в деле нет ни одного блока number/scale, показываем 0 сегодня и 0 всего.
 
 function getNumericBlocks(blocks: BlockRow[]): BlockRow[] {
-  return (blocks ?? []).filter((b) => b.block_type === 'number' || b.block_type === 'scale')
+  return (blocks ?? []).filter(
+    (b) => b.block_type === 'number' || b.block_type === 'scale' || b.block_type === 'duration'
+  )
 }
 
 function getTodayDateString(): string {
-  return new Date().toISOString().slice(0, 10)
+  return todayLocalISO()
 }
 
-function getValueFromAnswer(valueJson: ValueJson, blockType: 'number' | 'scale'): number {
+function getValueFromAnswer(valueJson: ValueJson, blockType: 'number' | 'scale' | 'duration'): number {
   if (blockType === 'number' && 'number' in valueJson) return Number(valueJson.number) || 0
   if (blockType === 'scale' && 'scaleValue' in valueJson) return Number(valueJson.scaleValue) || 0
+  if (blockType === 'duration' && 'durationHms' in valueJson) {
+    const hms = (valueJson as { durationHms: string }).durationHms
+    const [h, m, s] = (hms ?? '0:0:0').split(':').map((x) => parseInt(x, 10) || 0)
+    return h * 3600 + m * 60 + s
+  }
   return 0
 }
 
@@ -45,7 +53,9 @@ export function getDeedDisplayNumbers(
     return { today: 0, total: 0 }
   }
 
-  const useCount = numericBlocks.length > 1
+  // For duration, or multiple numeric blocks: show record count
+  const hasDuration = numericBlocks.some((b) => b.block_type === 'duration')
+  const useCount = numericBlocks.length > 1 || hasDuration
   if (useCount) {
     const today = records.filter((r) => r.record_date === todayStr).length
     const total = records.length
@@ -54,7 +64,7 @@ export function getDeedDisplayNumbers(
 
   const singleBlock = numericBlocks[0]
   const blockId = singleBlock.id
-  const blockType = singleBlock.block_type as 'number' | 'scale'
+  const blockType = singleBlock.block_type as 'number' | 'scale' | 'duration'
 
   let sumToday = 0
   let sumTotal = 0

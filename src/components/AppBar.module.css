@@ -1,0 +1,33 @@
+/* Верхняя панель для внутренних страниц */
+.appBar {
+  padding: var(--space-2) 0;
+  margin-bottom: var(--space-2);
+  border-bottom: 1px solid var(--gray-a4);
+}
+
+.row {
+  flex-wrap: wrap;
+}
+
+.backLink,
+.backButton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--gray-11);
+  text-decoration: none;
+}
+
+.backLink:hover,
+.backButton:hover {
+  color: var(--gray-12);
+}
+
+.title {
+  flex: 1;
+  min-width: 0;
+}
+
+.actions {
+  margin-left: auto;
+}

@@ -1,61 +1,67 @@
 import { Link } from 'react-router-dom'
-import { Card, CardContent } from '@/components/ui/card'
-import { previewAnswer } from '@/lib/format-utils'
-import type { ValueJson } from '@/types/database'
+import { Card, Flex, Text } from '@radix-ui/themes'
+import type { BlockRow, RecordRow, ValueJson } from '@/types/database'
+import { formatAnswer, previewAnswer } from '@/lib/format-utils'
+import styles from './RecordCard.module.css'
 
-type RecordWithAnswers = {
-  id: string
-  record_date: string
-  record_time?: string | null
-  record_answers?: { value_json: unknown }[]
-} & (
-  | { deed?: { emoji: string; name: string } }
-  | Record<string, never>
-)
+type RecordAnswer = { block_id: string; value_json: unknown }
 
-interface RecordCardProps {
-  record: RecordWithAnswers
-  /** Для истории: показывать время + название дела */
-  variant?: 'deed' | 'history'
+type RecordCardProps = {
+  /** Запись с ответами */
+  record: RecordRow & { record_answers?: RecordAnswer[] }
+  /** Блоки дела для форматирования ответов (по sort_order). Если нет — используется previewAnswer */
+  blocks?: BlockRow[]
+  /** Префикс «дело» для страницы истории: эмодзи и название */
+  deedPrefix?: { emoji: string; name: string }
+  /** state для Link (например { from: 'history' }) */
+  linkState?: Record<string, string>
 }
 
-export function RecordCard({ record, variant = 'deed' }: RecordCardProps) {
-  const preview = record.record_answers?.length
-    ? previewAnswer(record.record_answers[0].value_json as ValueJson, variant === 'history' ? 25 : 20)
-    : '—'
+/**
+ * Карточка записи в списке.
+ * Единый дизайн для страницы истории и просмотра дела.
+ * Клик — переход на просмотр записи.
+ */
+export function RecordCard({ record, blocks = [], deedPrefix, linkState }: RecordCardProps) {
+  const sortedAnswers = [...(record.record_answers ?? [])].sort((a, b) => {
+    const blockA = blocks.find((x) => x.id === a.block_id)
+    const blockB = blocks.find((x) => x.id === b.block_id)
+    const orderA = blockA?.sort_order ?? 0
+    const orderB = blockB?.sort_order ?? 0
+    return orderA - orderB
+  })
 
-  if (variant === 'history' && 'deed' in record && record.deed) {
-    return (
-      <Link to={`/records/${record.id}`}>
-        <Card className="w-full hover:bg-accent/50 transition-colors">
-          <CardContent className="w-full py-3 px-4 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
-            <span className="text-sm font-medium shrink-0">
-              {(record.record_time ?? '').toString().slice(0, 5)}
-            </span>
-            <span className="text-sm truncate w-fit">
-              {record.deed.emoji} {record.deed.name}
-            </span>
-            <span className="text-muted-foreground text-sm truncate sm:ml-auto">
-              {preview}
-            </span>
-          </CardContent>
-        </Card>
-      </Link>
-    )
-  }
+  const preview = sortedAnswers
+    .map((a) => {
+      const block = blocks.find((b) => b.id === a.block_id)
+      return block ? formatAnswer(a.value_json as ValueJson, block) : previewAnswer(a.value_json as ValueJson)
+    })
+    .join(', ') || '—'
+
+  const timeStr = record.record_time?.slice(0, 5) ?? ''
 
   return (
-    <Link to={`/records/${record.id}`}>
-      <Card className="hover:bg-accent/50 transition-colors">
-        <CardContent className="py-3 px-4 flex items-center justify-between gap-2">
-          <span className="text-sm font-medium">
-            {record.record_date} {record.record_time}
-          </span>
-          <span className="text-muted-foreground text-sm truncate max-w-[50%]">
+    <Card>
+      <Link
+        to={`/records/${record.id}`}
+        state={linkState}
+        className={styles.recordLink}
+      >
+        <Flex direction="column" gap="1">
+          <Text size="2" weight="medium">
+            {deedPrefix && (
+              <>
+                {deedPrefix.emoji} {deedPrefix.name}
+                {' — '}
+              </>
+            )}
+            {record.record_date} {timeStr}
+          </Text>
+          <Text size="2" color="gray">
             {preview}
-          </span>
-        </CardContent>
-      </Card>
-    </Link>
+          </Text>
+        </Flex>
+      </Link>
+    </Card>
   )
 }

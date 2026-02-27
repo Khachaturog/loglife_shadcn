@@ -1,0 +1,20 @@
+.container {
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.dateTimeField {
+  flex: 1;
+  min-width: 140px;
+}
+
+.textArea {
+  min-height: 80px;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
