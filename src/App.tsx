@@ -4,9 +4,11 @@ import { Box, Flex, Text } from '@radix-ui/themes'
 import { useAuth } from '@/lib/auth-context'
 import { TabBar, useTabBarVisible } from '@/components/TabBar'
 import styles from './App.module.css'
+// DeedsListPage — главная страница (маршрут /), импортируем напрямую чтобы не добавлять
+// лишний HTTP-запрос и задержку lazy chunk на критическом пути загрузки
+import { DeedsListPage } from '@/pages/DeedsListPage'
 
 const LoginPage = lazy(() => import('@/pages/LoginPage').then((m) => ({ default: m.LoginPage })))
-const DeedsListPage = lazy(() => import('@/pages/DeedsListPage').then((m) => ({ default: m.DeedsListPage })))
 const DeedViewPage = lazy(() => import('@/pages/DeedViewPage').then((m) => ({ default: m.DeedViewPage })))
 const DeedFormPage = lazy(() => import('@/pages/DeedFormPage').then((m) => ({ default: m.DeedFormPage })))
 const FillFormPage = lazy(() => import('@/pages/FillFormPage').then((m) => ({ default: m.FillFormPage })))

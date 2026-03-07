@@ -10,12 +10,16 @@ import type { RecordRow, RecordAnswerRow } from '@/types/database'
 /**
  * Страница списка дел.
  * Показывает дела с фильтром по категории, статистику (сегодня/всего) и кнопку добавления записи.
+ *
+ * Прогрессивная загрузка: список дел появляется сразу после первого запроса,
+ * счётчики записей (сегодня/всего) доподгружаются вторым запросом незаметно.
  */
 export function DeedsListPage() {
   // --- Состояние ---
   const [deeds, setDeeds] = useState<DeedWithBlocks[]>([])
   const [recordsByDeedId, setRecordsByDeedId] = useState<Record<string, (RecordRow & { record_answers?: RecordAnswerRow[] })[]>>({})
-  const [loading, setLoading] = useState(true)
+  // Два флага загрузки: deedsLoading блокирует рендер, recordsLoading — нет
+  const [deedsLoading, setDeedsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
 
@@ -26,18 +30,22 @@ export function DeedsListPage() {
       .listWithBlocks()
       .then((data) => {
         if (cancelled) return null
+        // Показываем список дел немедленно, не ждём второго запроса
         setDeeds(data)
+        setDeedsLoading(false)
+        // DeedCard умеет работать с пустым records[] — покажет «0 сегодня, 0 всего»
         return api.deeds.recordsByDeedIds(data.map((d) => d.id), { skipDeedCheck: true })
       })
       .then((byId) => {
+        // Записи приходят позже — счётчики обновятся без перерисовки всего списка
         if (cancelled || !byId) return
         setRecordsByDeedId(byId)
       })
       .catch((e) => {
-        if (!cancelled) setError(e?.message ?? 'Ошибка загрузки')
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
+        if (!cancelled) {
+          setError(e?.message ?? 'Ошибка загрузки')
+          setDeedsLoading(false)
+        }
       })
     return () => { cancelled = true }
   }, [])
@@ -67,7 +75,7 @@ export function DeedsListPage() {
   }, [deeds, selectedCategory])
 
   // --- Рендер состояний загрузки и ошибки ---
-  if (loading) {
+  if (deedsLoading) {
     return (
       <Box p="4">
         <Text>Загрузка…</Text>
