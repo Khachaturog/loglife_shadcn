@@ -61,11 +61,11 @@ export function FillFormNumberStepper({
 
   // Вибрация только в начале жеста (не на каждом тике удержания).
   const onMinusPointerDown = useCallback(() => {
-    triggerHaptic('light', { intensity: 1 })
+    triggerHaptic('heavy', { intensity: 1 })
     minusHold.handlePointerDown()
   }, [minusHold])
   const onPlusPointerDown = useCallback(() => {
-    triggerHaptic('light', { intensity: 1 })
+    triggerHaptic('heavy', { intensity: 1 })
     plusHold.handlePointerDown()
   }, [plusHold])
 

@@ -197,7 +197,7 @@ export function FillFormPage() {
         record_time: recordTime,
         answers: Object.keys(sanitizedAnswers).length ? sanitizedAnswers : undefined,
       })
-      triggerHaptic('success')
+      triggerHaptic('success', { intensity: 1 })
       navigate(-1)
     } catch (err: unknown) {
       console.error(err instanceof Error ? err.message : 'Ошибка сохранения')
@@ -304,7 +304,7 @@ export function FillFormPage() {
                     variant="ghost"
                     color="gray"
                     onClick={() => {
-                      triggerHaptic('light', { intensity: 1 })
+                      triggerHaptic('heavy', { intensity: 1 })
                       clearAnswer(block.id)
                     }}
                   >
@@ -365,7 +365,7 @@ export function FillFormPage() {
                           variant="soft"
                           radius="full"
                           onClick={() => {
-                            triggerHaptic('light', { intensity: 1 })
+                            triggerHaptic('heavy', { intensity: 1 })
                             setAnswer(block.id, { number: val })
                           }}
                         >
@@ -399,7 +399,7 @@ export function FillFormPage() {
                     size="3"
                     value={(answers[block.id] as { optionId?: string } | undefined)?.optionId || undefined}
                     onValueChange={(v) => {
-                      triggerHaptic('light', { intensity: 1 })
+                      triggerHaptic('heavy', { intensity: 1 })
                       setAnswer(block.id, { optionId: v })
                     }}
                   >
@@ -421,7 +421,7 @@ export function FillFormPage() {
                           variant="soft"
                           radius="full"
                           onClick={() => {
-                            triggerHaptic('light', { intensity: 1 })
+                            triggerHaptic('heavy', { intensity: 1 })
                             setAnswer(block.id, { optionId: optId })
                           }}
                         >
@@ -441,7 +441,7 @@ export function FillFormPage() {
                     (answers[block.id] as { optionIds?: string[] } | undefined)?.optionIds ?? []
                   }
                   onValueChange={(nextValues) => {
-                    triggerHaptic('light', { intensity: 1 })
+                    triggerHaptic('heavy', { intensity: 1 })
                     // Без flushSync при быстрых кликах по разным пунктам Radix считает следующий шаг
                     // от устаревшего `value` (батч React) — в onValueChange приходит урезанный массив.
                     flushSync(() => {
@@ -470,7 +470,7 @@ export function FillFormPage() {
                     (answers[block.id] as { scaleValue?: number } | undefined)?.scaleValue?.toString()
                   }
                   onValueChange={(v) => {
-                    triggerHaptic('light', { intensity: 1 })
+                    triggerHaptic('heavy', { intensity: 1 })
                     setAnswer(block.id, { scaleValue: Number(v) })
                   }}
                   // Узкий экран — компактнее по ширине; высота — через ScaleSegmentedControl.module.css.
@@ -505,7 +505,7 @@ export function FillFormPage() {
                         : ''
                   }
                   onValueChange={(v) => {
-                    triggerHaptic('light', { intensity: 1 })
+                    triggerHaptic('heavy', { intensity: 1 })
                     setAnswer(block.id, { yesNo: v === 'true' })
                   }}
                 >
