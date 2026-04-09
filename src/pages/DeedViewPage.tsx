@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
-import { AlertDialog, Badge, Box, Button, Card, Flex, Heading, IconButton, Separator, Text } from '@radix-ui/themes'
+import { AlertDialog, Box, Button, Card, DropdownMenu, Flex, Heading, IconButton, Separator, Text } from '@radix-ui/themes'
 import { DeedActivityHeatmap } from '@/components/DeedActivityHeatmap'
 import { DeedDescriptionText } from '@/components/DeedDescriptionText'
 import { AppBar } from '@/components/AppBar'
+import { useOnboarding } from '@/lib/onboarding-context'
 import { PageLoading } from '@/components/PageLoading'
-import { Pencil1Icon, PlusIcon, TrashIcon } from '@radix-ui/react-icons'
+import { DotsHorizontalIcon, PlusIcon, Pencil1Icon, TrashIcon, QuestionMarkCircledIcon } from '@radix-ui/react-icons'
 import { api } from '@/lib/api'
 import { RecordCard } from '@/components/RecordCard'
 import type { DeedWithBlocks } from '@/types/database'
@@ -33,6 +34,7 @@ import {
 export function DeedViewPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { openFlow } = useOnboarding()
 
   // --- Состояние ---
   const [deed, setDeed] = useState<DeedWithBlocks | null>(null)
@@ -214,12 +216,12 @@ export function DeedViewPage() {
 
   if (error || !deed) {
     return (
-      <Box p="4">
+      <Flex direction="column" gap="2" p="4">
         <AppBar backHref="/" />
-        <Text as="p" color="crimson" mt="2">
+        <Text as="p" size="2" color="crimson">
           {error ?? 'Дело не найдено'}
         </Text>
-      </Box>
+      </Flex>
     )
   }
 
@@ -231,29 +233,6 @@ export function DeedViewPage() {
         title=""
         actions={
           <Flex gap="2" align="center">
-            <IconButton
-              type="button"
-              size="3"
-              color="red"
-              variant="classic"
-              radius="full"
-              aria-label="Удалить дело"
-              onClick={() => setDeleteOpen(true)}
-            >
-              <TrashIcon width={18} height={18} />
-            </IconButton>
-            <IconButton 
-            asChild 
-            size="3" 
-            color="gray" 
-            variant="classic" 
-            radius="full" 
-            aria-label="Редактировать дело">
-              <Link to={`/deeds/${id}/edit`}>
-                <Pencil1Icon width={18} height={18} />
-              </Link>
-            </IconButton>
-            <Separator orientation="vertical"/>
             {singleYesNoBlock ? (
               <IconButton
                 type="button"
@@ -264,7 +243,7 @@ export function DeedViewPage() {
                 disabled={addingRecord}
                 onClick={() => void handleQuickAddYesNoRecord()}
               >
-                <PlusIcon width={18} height={18} />
+                <PlusIcon />
               </IconButton>
             ) : (
               <IconButton
@@ -275,48 +254,67 @@ export function DeedViewPage() {
                 aria-label="Добавить запись"
               >
                 <Link to={`/deeds/${id}/fill`}>
-                  <PlusIcon width={18} height={18} />
+                  <PlusIcon />
                 </Link>
               </IconButton>
             )}
+            <Separator orientation="vertical" />
+            <DropdownMenu.Root>
+              <DropdownMenu.Trigger>
+                <IconButton
+                  type="button"
+                  size="3"
+                  color="gray"
+                  variant="classic"
+                  radius="full"
+                  aria-label="Действия с делом"
+                >
+                  <DotsHorizontalIcon />
+                </IconButton>
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Content variant="solid" size="2" align="end" sideOffset={8}>
+                <DropdownMenu.Item asChild>
+                  <Link to={`/deeds/${id}/edit`}> <Pencil1Icon /> Редактировать</Link>
+                </DropdownMenu.Item>
+                <DropdownMenu.Separator />
+                <DropdownMenu.Item color="red" onSelect={() => setDeleteOpen(true)}>
+                  <TrashIcon /> Удалить
+                </DropdownMenu.Item>
+                <DropdownMenu.Separator />
+                <DropdownMenu.Item color="gray" onSelect={() => openFlow('help_deed_view')}>
+                  <QuestionMarkCircledIcon /> Справка
+                </DropdownMenu.Item>
+              </DropdownMenu.Content>
+            </DropdownMenu.Root>
           </Flex>
         }
       />
-    <Flex direction="column" gap="1">
+    <Flex direction="column" gap="4">
       {quickAddError ? (
         <Text as="p" size="2" color="crimson" role="alert">
           {quickAddError}
         </Text>
       ) : null}
 
-      <Flex align="center" direction="row" gap="3">
-     {/* <Avatar size="5" radius="large" color="gray" variant="soft" fallback={deed.emoji?.trim() || '📋'} /> */}
       <Flex direction="column">
-        <Heading size="7">
+        <Heading as="h1" size="7">
           {`${deed.name}`}
         </Heading>
-
-        {/* {deed.category && (
-          <Text as="p" size="2" color="gray" >
-          Категория: {deed.category}
-          </Text>
-          )} */}
 
         {deed.description ? (
           <DeedDescriptionText text={deed.description} />
         ) : null}
       </Flex>
-      </Flex>
 
       {showAnalyticsBlock ? (
-        <Box py="3" className={styles.analyticsSection}>
+        <Box className={styles.analyticsSection}>
           {showSummaryRow ? (
             <Flex direction="row" gap="2" wrap="wrap" mb="2">
               {s.show_today ? (
                 <Card style={{ flex: '1' }}>
                   <Flex direction="column" gap="1">
                     <Text size="2" color="gray">Сегодня</Text>
-                    <Text weight="bold" size="4">
+                    <Text size="4">
                       {displayNumbers.today}
                     </Text>
                   </Flex>
@@ -327,7 +325,7 @@ export function DeedViewPage() {
                 <Card style={{ flex: '1' }}>
                   <Flex direction="column" gap="1">
                     <Text size="2" color="gray">За месяц</Text>
-                    <Text weight="bold" size="4">
+                    <Text size="4">
                       {displayNumbers.month}
                     </Text>
                   </Flex>
@@ -338,7 +336,7 @@ export function DeedViewPage() {
                 <Card style={{ flex: '1' }}>
                   <Flex direction="column" gap="1">
                     <Text size="2" color="gray">Всего</Text>
-                    <Text weight="bold" size="4">
+                    <Text size="4">
                       {displayNumbers.total}
                     </Text>
                   </Flex>
@@ -410,38 +408,21 @@ export function DeedViewPage() {
       ) : null}
 
       {/* История записей по датам */}
-      <Flex align="center" justify="between" gap="2" mt="4" mb="2">
-        <Heading size="3">История</Heading>
-        {/* <Badge 
-        size="2" 
-        color="gray" 
-        variant="soft" 
-        radius="full">
-          {records.length}
-        </Badge> */}
-      </Flex>
+      {/* <Heading as="h3" size="4">
+        История
+      </Heading> */}
 
       {records.length === 0 ? (
-        <Text as="p" color="gray">
+        <Text as="p" size="2" color="gray">
           Пока нет записей. Добавьте первую.
         </Text>
       ) : (
         <Flex direction="column" gap="4">
           {byDate.map(([date, dayRecords]) => (
-            <Box key={date}>
-              <Flex justify="between" align="center" gap="2" mb="2">
-                <Text weight="medium">
-                  {formatDate(date)}
-                </Text>
-                <Badge 
-                size="2" 
-                color="gray" 
-                variant="soft" 
-                radius="full">
-                  {dayRecords.length}
-                </Badge>
-              </Flex>
-              
+            <Flex key={date} direction="column" gap="2">
+              <Text as="p" size="3" color="gray">
+                {formatDate(date)}
+              </Text>
               <Flex direction="column" gap="2">
                 {dayRecords.map((rec) => (
                   <RecordCard
@@ -449,10 +430,14 @@ export function DeedViewPage() {
                     record={rec}
                     blocks={deed.blocks ?? []}
                     hideAvatar
+                    onRecordDeleted={() => {
+                      if (!id) return
+                      void api.deeds.records(id).then(setRecords)
+                    }}
                   />
                 ))}
               </Flex>
-            </Box>
+            </Flex>
           ))}
         </Flex>
       )}

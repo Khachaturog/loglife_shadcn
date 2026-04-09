@@ -55,9 +55,9 @@ export function AppBar({
   const backAriaLabel = backButtonIcon === 'close' ? 'Закрыть' : 'Назад'
   const BackGlyph =
     backButtonIcon === 'close' ? (
-      <Cross2Icon width={18} height={18} />
+      <Cross2Icon />
     ) : (
-      <ArrowLeftIcon width={18} height={18} />
+      <ArrowLeftIcon />  
     )
   const scrolled = useScrolled()
   const hasTitle = Boolean(title)
@@ -103,7 +103,7 @@ export function AppBar({
             ) : (
               // Резерв: nbsp даёт высоту строки как у обычного заголовка
               <Text
-                size="5"
+                size="4"
                 weight="medium"
                 className={`${styles.title} ${styles.titleReserve}`}
                 aria-hidden
@@ -126,7 +126,7 @@ export function AppBar({
                       aria-hidden
                       tabIndex={-1}
                     >
-                      <ArrowLeftIcon width={18} height={18} />
+                      <ArrowLeftIcon />
                     </IconButton>
                   ))}
             </Flex>

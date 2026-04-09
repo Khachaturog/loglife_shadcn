@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Badge, Box, Card, Flex, IconButton, Text } from '@radix-ui/themes'
+import { Box, Card, Flex, IconButton, Text } from '@radix-ui/themes'
 import { CheckIcon, PlusIcon, UpdateIcon } from '@radix-ui/react-icons'
 import type { DeedWithBlocks } from '@/types/database'
 import type { RecordRow, RecordAnswerRow } from '@/types/database'
@@ -129,11 +129,11 @@ export function DeedCard({ deed, records, onRecordsRefresh }: DeedCardProps) {
               <Flex direction="column" gap="1">
                 <Flex align="center" gapX="2" gapY="1" wrap="wrap">
                   <Text weight="medium">{deed.name}</Text>
-                  {deed.category && (
+                  {/* {deed.category && (
                     <Badge size="1" color="gray" radius="large" variant="surface">
                       {deed.category}
                     </Badge>
-                  )}
+                  )} */}
                 </Flex>
                 <Text as="p" size="2" color="gray">
                   {today} сегодня · {total} всего
@@ -163,9 +163,8 @@ export function DeedCard({ deed, records, onRecordsRefresh }: DeedCardProps) {
                 <IconButton
                   type="button"
                   size="3"
-                  color="gray"
-                  variant="surface"
-                  radius="large"
+                  variant="soft"
+                  radius="full"
                   className={deedCardStyles.cardActionButton}
                   title="Добавление записи…"
                   aria-label="Добавление записи"
@@ -177,8 +176,8 @@ export function DeedCard({ deed, records, onRecordsRefresh }: DeedCardProps) {
                 <IconButton
                   type="button"
                   size="3"
-                  variant="surface"
-                  radius="large"
+                  variant="classic"
+                  radius="full"
                   className={deedCardStyles.cardActionButton}
                   title="Нажать — быстрая запись «Да». Удерживать — форма с датой и временем"
                   aria-label="Добавить запись"
@@ -194,8 +193,9 @@ export function DeedCard({ deed, records, onRecordsRefresh }: DeedCardProps) {
             ) : (
               <IconButton
                 size="3"
-                variant="surface"
-                radius="large"
+                variant="classic"
+                // color="gray"
+                radius="full"
                 asChild
                 title="Добавить запись"
                 aria-label="Добавить запись"

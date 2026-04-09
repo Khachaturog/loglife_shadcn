@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react'
-import { useEffect, useRef, useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { Box, Card, Flex, Text, Tooltip } from '@radix-ui/themes'
 import {
   buildDeedHeatmap,
@@ -133,7 +133,9 @@ export function DeedActivityHeatmap({
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [visibleWeeks, setVisibleWeeks] = useState(13)
 
-  useEffect(() => {
+  // До первого paint измеряем ширину — иначе виден кадр с дефолтными 13 неделями
+  // и смещением сетки после ResizeObserver.
+  useLayoutEffect(() => {
     const node = containerRef.current
     if (!node) return
 

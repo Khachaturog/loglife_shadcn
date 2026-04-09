@@ -3,3 +3,9 @@
   color: inherit;
   display: block;
 }
+
+/* Обёртка триггера контекстного меню на всю ширину карточки */
+.contextTrigger {
+  display: block;
+  width: 100%;
+}

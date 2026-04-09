@@ -206,7 +206,7 @@ export function ClickerPage() {
             </div>
           </Box>
           {/* Кнопки минус/плюс — тап или удержание */}
-          <Flex gap="2" justify="center" mb="4" ml="8" mr="8">
+          <Flex gap="2" justify="center">
             <IconButton
               className={styles.counterButton}
               size="4"

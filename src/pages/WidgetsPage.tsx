@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { Avatar, Box, Card, Flex, Text } from '@radix-ui/themes'
 import { AppBar } from '@/components/AppBar'
+import { OnboardingHelpButton } from '@/components/onboarding/OnboardingHelpButton'
 import layoutStyles from '@/styles/layout.module.css'
 
 /**
@@ -10,7 +11,7 @@ import layoutStyles from '@/styles/layout.module.css'
 export function WidgetsPage() {
   return (
     <Box className={layoutStyles.pageContainer}>
-      <AppBar title="Виджеты" />
+      <AppBar title="Виджеты" actions={<OnboardingHelpButton flowId="help_widgets" />} />
 
       <Flex direction="column" gap="3">
 

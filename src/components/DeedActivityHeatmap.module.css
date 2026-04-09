@@ -48,6 +48,10 @@
   min-height: 16px;
   align-items: end;
   overflow: hidden;
+  /* Фиксированная сетка уже по ширине данных — прижимаем к правому краю карточки,
+     чтобы «сегодня» не прыгало при смене visibleWeeks и не казалось центрированием */
+  justify-content: end;
+  width: 100%;
 }
 
 /** Контейнер подписи месяца: ровно 4 ячейки + 3 отступа по горизонтали */
@@ -69,6 +73,8 @@
   grid-auto-flow: column dense;
   grid-template-rows: repeat(7, var(--heatmap-cell));
   gap: var(--heatmap-gap);
+  justify-content: end;
+  width: 100%;
 }
 
 .cell {

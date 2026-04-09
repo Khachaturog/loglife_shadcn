@@ -1,13 +1,24 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
-import { Box, Button, CheckboxCards, CheckboxGroup, Flex, IconButton, SegmentedControl, Text, TextField } from '@radix-ui/themes'
+import {
+  Box,
+  Button,
+  Card,
+  CheckboxCards,
+  CheckboxGroup,
+  Flex,
+  IconButton,
+  SegmentedControl,
+  Text,
+  TextField,
+} from '@radix-ui/themes'
 import { AUTO_GROW_TEXTAREA_MIN_ONE_LINE_PX, AutoGrowTextArea } from '@/components/AutoGrowTextArea'
 import { AppBar } from '@/components/AppBar'
 import { SingleSelectAnswerField } from '@/components/SingleSelectAnswerField'
 import { FillFormNumberStepper } from '@/components/FillFormNumberStepper'
 import { PageLoading } from '@/components/PageLoading'
-import { CheckIcon } from '@radix-ui/react-icons'
+import { CheckIcon, ResetIcon } from '@radix-ui/react-icons'
 import { getSingleSelectUi } from '@/lib/block-config'
 import { initialAnswersFromBlockDefaults } from '@/lib/block-default-value'
 import { api } from '@/lib/api'
@@ -301,7 +312,7 @@ export function FillFormPage() {
 
   if (!deed) {
     return (
-      <Box p="4">
+      <Box>
         <AppBar onBack={() => navigate(-1)} backButtonIcon="close" />
         <Text as="p" color="crimson">
           Дело не найдено.
@@ -327,13 +338,15 @@ export function FillFormPage() {
               disabled={saving}
               aria-label={saving ? 'Сохранение…' : 'Добавить запись'}
             >
-              <CheckIcon width={18} height={18} />
+              <CheckIcon />
             </IconButton>
           }
         />
 
         <Flex direction="column" gap="4" >
 
+        <Card>
+        <Flex direction="column" gap="3">
           <Flex direction="column" gap="1">
             <Text size="2" weight="medium" as="label" htmlFor="deed">Дело</Text>
             <Text size="3">{deed?.name}</Text>
@@ -355,9 +368,11 @@ export function FillFormPage() {
                 value={recordTime}
                 onChange={(e) => setRecordTime(e.target.value)}
                 onKeyDown={blurInputOnEnter}
-              />
+                />
             </Flex>
           </Flex>
+          </Flex>
+        </Card>
 
           {/* Поля по блокам */}
           {blocks.map((block) => {
@@ -378,24 +393,26 @@ export function FillFormPage() {
                 ? Object.fromEntries(getBlockOptions(block).map((o) => [o.id, o.label]))
                 : ({} as Record<string, string>)
             return (
-            <Flex key={block.id} direction="column" gap="1">
-              <Flex direction="row" align="center" gap="3" wrap="wrap">
-                <Text size="2" weight="medium">
+            <Card key={block.id}>
+            <Flex direction="column" gap="1">
+              <Flex direction="row" align="baseline" gap="3" wrap="wrap" mr="2px">
+                <Text size="3" weight="medium" style={{ flex: 1, minWidth: 0 }}>
                   {block.title}{block.is_required && ' *'}
                 </Text>
                 {answers[block.id] !== undefined && block.block_type !== 'yes_no' && (
-                  <Button
+                  <IconButton
                     type="button"
-                    size="2"
+                    size="3"
                     variant="ghost"
-                    color="gray"
+                    color="red"
+                    radius="large"
                     onClick={() => {
                       triggerHaptic('medium', { intensity: 1 })
                       clearAnswer(block.id)
                     }}
                   >
-                    Сбросить
-                  </Button>
+                    <ResetIcon />
+                  </IconButton>
                 )}
               </Flex>
               {block.block_type === 'number' && (
@@ -600,6 +617,7 @@ export function FillFormPage() {
                 </Text>
               )}
             </Flex>
+            </Card>
             )
           })}
 

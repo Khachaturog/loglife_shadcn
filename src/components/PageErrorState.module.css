@@ -1,0 +1,31 @@
+/* Вертикальный запас под TabBar и визуальный центр блока */
+.wrap {
+  min-height: min(70vh, 560px);
+  padding-top: 24px;
+  padding-bottom: 24px;
+}
+
+/* Режим под AppBar: растягиваем по высоте оставшейся области */
+.embedded {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+
+.imageWrap {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+/* Длинные сообщения об ошибках — перенос, не разъезжаем вёрстку */
+.code {
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-width: 100%;
+  margin: 0;
+  font-size: var(--font-size-1);
+  line-height: var(--line-height-1);
+  color: var(--gray-11);
+  font-family: var(--code-font-family, ui-monospace, monospace);
+}

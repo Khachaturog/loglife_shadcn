@@ -9,6 +9,7 @@ import '@/styles/global.css'
 import 'air-datepicker/air-datepicker.css'
 import '@/styles/air-datepicker-overrides.css'
 import { AuthProvider } from '@/lib/auth-context'
+import { OnboardingProvider } from '@/lib/onboarding-context'
 import { Agentation } from 'agentation'
 import App from './App'
 
@@ -33,7 +34,9 @@ createRoot(document.getElementById('root')!).render(
       <Theme accentColor="indigo" grayColor="slate" radius="large" scaling="100%">
         <BrowserRouter basename={import.meta.env.BASE_URL}>
           <AuthProvider>
-            <App />
+            <OnboardingProvider>
+              <App />
+            </OnboardingProvider>
             {import.meta.env.DEV && isAgentationHost() && !isMobileDevice() && (
               <Agentation endpoint="http://localhost:4747" />
             )}

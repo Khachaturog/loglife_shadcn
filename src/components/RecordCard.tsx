@@ -1,8 +1,12 @@
-import { Link } from 'react-router-dom'
-import { Avatar, Card, Flex, Text } from '@radix-ui/themes'
-import type { BlockRow, RecordRow, ValueJson } from '@/types/database'
+import { Link, useNavigate } from 'react-router-dom'
+import { AlertDialog, Button, Card, ContextMenu, Flex, Text } from '@radix-ui/themes'
+import type { BlockRow, RecordRow, RecordWithAnswers, ValueJson } from '@/types/database'
+import { answersFromRecord } from '@/lib/answers-from-record'
+import { api } from '@/lib/api'
 import { formatAnswerPreviewSegment, formatYesNoOnlyRecordListPreview } from '@/lib/format-utils'
+import { triggerHaptic } from '@/lib/haptics'
 import { persistHistoryListScrollY } from '@/lib/history-scroll-storage'
+import { useState } from 'react'
 import styles from './RecordCard.module.css'
 
 type RecordAnswer = { block_id: string; value_json: unknown }
@@ -18,14 +22,17 @@ type RecordCardProps = {
   avatarFallback?: string
   /** Скрыть аватар (на странице дела эмодзи дела уже в шапке) */
   hideAvatar?: boolean
-  /** state для Link (например { from: 'history' }) */
-  linkState?: Record<string, string>
+  /** state для Link / navigate (напр. { from: 'history' }) */
+  linkState?: Record<string, unknown>
+  /** Серый текст превью — только на странице «История»; на странице дела оставляем обычный цвет */
+  previewGray?: boolean
+  /** После удаления записи на сервере — обновить список на родителе (История / дело) */
+  onRecordDeleted?: () => void | Promise<void>
 }
 
 /**
  * Карточка записи в списке.
- * Вся карточка = ссылка (Card asChild + Link): паддинги и hover от Radix, клик по любой области ведёт на /records/:id.
- * Используется на странице истории и на странице просмотра дела.
+ * Вся карточка = ссылка: короткий тап / ЛКМ — просмотр записи; long tap / ПКМ — меню (дублировать, редактировать, удалить).
  */
 export function RecordCard({
   record,
@@ -34,7 +41,14 @@ export function RecordCard({
   avatarFallback,
   hideAvatar = false,
   linkState,
+  previewGray = false,
+  onRecordDeleted,
 }: RecordCardProps) {
+  const navigate = useNavigate()
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [deleteLoading, setDeleteLoading] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+
   const sortedAnswers = [...(record.record_answers ?? [])].sort((a, b) => {
     const blockA = blocks.find((x) => x.id === a.block_id)
     const blockB = blocks.find((x) => x.id === b.block_id)
@@ -43,7 +57,6 @@ export function RecordCard({
     return orderA - orderB
   })
 
-  // Дело только из «да/нет» — компактное превью «N из M» вместо «Выполнено · Не выполнено · …».
   const yesNoOnlyPreview = formatYesNoOnlyRecordListPreview(record.record_answers ?? [], blocks)
   const preview =
     yesNoOnlyPreview ??
@@ -60,47 +73,137 @@ export function RecordCard({
   const emoji = deedPrefix?.emoji ?? avatarFallback ?? '📋'
   const title = deedPrefix?.name ?? null
 
-  return (
-    <Card asChild>
-      <Link
-        to={`/records/${record.id}`}
-        state={linkState}
-        className={styles.recordLink}
-        onPointerDownCapture={
-          linkState?.from === 'history'
-            ? () => {
-                // До смены маршрута окно ещё на истории — иначе unmount сохранил бы уже чужой scrollY.
-                persistHistoryListScrollY()
-              }
-            : undefined
+  const historyScrollCapture =
+    linkState?.from === 'history'
+      ? () => {
+          persistHistoryListScrollY()
         }
+      : undefined
+
+  function handleDuplicate() {
+    navigate(`/deeds/${record.deed_id}/fill`, {
+      state: { fillDuplicateAnswers: answersFromRecord(record as RecordWithAnswers) },
+    })
+  }
+
+  function handleEdit() {
+    navigate(`/records/${record.id}`, {
+      state: { ...linkState, openEditing: true },
+    })
+  }
+
+  async function confirmDelete() {
+    setDeleteLoading(true)
+    setDeleteError(null)
+    try {
+      await api.records.delete(record.id)
+      setDeleteOpen(false)
+      await onRecordDeleted?.()
+      if (!onRecordDeleted) {
+        if (linkState?.from === 'history') navigate('/history')
+        else navigate(`/deeds/${record.deed_id}`)
+      }
+    } catch (e) {
+      setDeleteError(e instanceof Error ? e.message : 'Не удалось удалить запись')
+    } finally {
+      setDeleteLoading(false)
+    }
+  }
+
+  return (
+    <>
+      <ContextMenu.Root
+        onOpenChange={(open) => {
+          if (open) triggerHaptic('medium', { intensity: 0.45 })
+        }}
       >
-        <Flex align="start" gap="2" width="100%">
-          {!hideAvatar ? (
-            <Avatar
-              size="1"
-              radius="large"
-              color="gray"
-              variant="soft"
-              fallback={emoji}
-            />
-          ) : null}
-          {/* minWidth: 0 — иначе flex-ребёнок не сужается и truncate не даёт многоточие */}
-          <Flex direction="column" gap="1" flexGrow="1" minWidth="0">
-            {title ? (
-              <Text weight="medium" truncate>
-                {title}
-              </Text>
-            ) : null}
-            <Text as="p" size="2">
-              {preview}
+        {/* Themes: Trigger без asChild — обёртка на всю ширину, иначе long press / ПКМ не на всей карточке */}
+        <ContextMenu.Trigger>
+          <span className={styles.contextTrigger}>
+            <Card asChild>
+              <Link
+                to={`/records/${record.id}`}
+                state={linkState}
+                className={styles.recordLink}
+                onPointerDownCapture={historyScrollCapture}
+              >
+                <Flex align="start" gap="2" width="100%">
+                  {!hideAvatar ? <Text size="2">{emoji}</Text> : null}
+                  <Flex direction="column" gap="1" flexGrow="1" minWidth="0">
+                    {title ? (
+                      <Text size="3" weight="medium" truncate>
+                        {title}
+                      </Text>
+                    ) : null}
+                    <Text as="p" size="3" color={previewGray ? 'gray' : undefined}>
+                      {preview}
+                    </Text>
+                  </Flex>
+                  <Text as="p" size="2" color="gray">
+                    {timeStr}
+                  </Text>
+                </Flex>
+              </Link>
+            </Card>
+          </span>
+        </ContextMenu.Trigger>
+
+        <ContextMenu.Content size="2" variant="solid">
+          <ContextMenu.Item
+            onSelect={() => {
+              handleDuplicate()
+            }}
+          >
+            Дублировать
+          </ContextMenu.Item>
+          <ContextMenu.Item
+            onSelect={() => {
+              handleEdit()
+            }}
+          >
+            Редактировать
+          </ContextMenu.Item>
+          <ContextMenu.Separator />
+          <ContextMenu.Item
+            color="red"
+            onSelect={() => {
+              setDeleteError(null)
+              setDeleteOpen(true)
+            }}
+          >
+            Удалить
+          </ContextMenu.Item>
+        </ContextMenu.Content>
+      </ContextMenu.Root>
+
+      <AlertDialog.Root open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialog.Content maxWidth="450px">
+          <AlertDialog.Title>Удалить запись?</AlertDialog.Title>
+          <AlertDialog.Description size="2">Запись будет удалена без возможности восстановления</AlertDialog.Description>
+          {deleteError ? (
+            <Text as="p" color="red" size="2">
+              {deleteError}
             </Text>
-            </Flex>
-              <Text as="p" size="2" color="gray">
-                {timeStr}
-              </Text>
-        </Flex>
-      </Link>
-    </Card>
+          ) : null}
+          <Flex gap="3" justify="end" mt="4">
+            <AlertDialog.Cancel>
+              <Button type="button" size="3" color="gray" variant="soft">
+                Отмена
+              </Button>
+            </AlertDialog.Cancel>
+            <Button
+              type="button"
+              size="3"
+              color="red"
+              variant="classic"
+              disabled={deleteLoading}
+              onClick={() => void confirmDelete()}
+            >
+              {deleteLoading ? 'Удаляю…' : 'Удалить'}
+            </Button>
+          </Flex>
+        </AlertDialog.Content>
+      </AlertDialog.Root>
+    </>
   )
 }

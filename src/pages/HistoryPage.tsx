@@ -1,8 +1,9 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Badge, Box, Button, Flex, Heading, Text } from '@radix-ui/themes'
 import { HomeIcon } from '@radix-ui/react-icons'
 import { AppBar } from '@/components/AppBar'
+import { OnboardingHelpButton } from '@/components/onboarding/OnboardingHelpButton'
 import { PageLoading } from '@/components/PageLoading'
 import { api } from '@/lib/api'
 import { RecordCard } from '@/components/RecordCard'
@@ -13,6 +14,26 @@ import layoutStyles from '@/styles/layout.module.css'
 
 type RecordWithDeed = (RecordRow & { record_answers?: { block_id: string; value_json: unknown }[] }) & {
   deed?: { emoji: string; name: string; blocks?: BlockRow[] }
+}
+
+/** Ответ API списка истории → состояние страницы (сортировка: новые выше). */
+function mapListToRecordsWithDeed(
+  records: Awaited<ReturnType<typeof api.deeds.listAllRecordsWithDeedInfo>>,
+): RecordWithDeed[] {
+  const all: RecordWithDeed[] = records.map((r) => {
+    const row = r as { deeds?: { emoji: string; name: string; blocks?: BlockRow[] } | null; deed?: { emoji: string; name: string; blocks?: BlockRow[] } | null }
+    const deedInfo = row.deeds ?? row.deed
+    return {
+      ...r,
+      deed: deedInfo ? { emoji: deedInfo.emoji ?? '', name: deedInfo.name ?? '', blocks: deedInfo.blocks ?? [] } : undefined,
+    }
+  })
+  all.sort((a, b) => {
+    const d = b.record_date.localeCompare(a.record_date)
+    if (d !== 0) return d
+    return (b.record_time ?? '').toString().localeCompare((a.record_time ?? '').toString())
+  })
+  return all
 }
 
 /**
@@ -71,20 +92,7 @@ export function HistoryPage() {
       .listAllRecordsWithDeedInfo()
       .then((records) => {
         if (cancelled) return
-        const all: RecordWithDeed[] = records.map((r) => {
-          const row = r as { deeds?: { emoji: string; name: string; blocks?: BlockRow[] } | null; deed?: { emoji: string; name: string; blocks?: BlockRow[] } | null }
-          const deedInfo = row.deeds ?? row.deed
-          return {
-            ...r,
-            deed: deedInfo ? { emoji: deedInfo.emoji ?? '', name: deedInfo.name ?? '', blocks: deedInfo.blocks ?? [] } : undefined,
-          }
-        })
-        all.sort((a, b) => {
-          const d = b.record_date.localeCompare(a.record_date)
-          if (d !== 0) return d
-          return (b.record_time ?? '').toString().localeCompare((a.record_time ?? '').toString())
-        })
-        setRecordsWithDeed(all)
+        setRecordsWithDeed(mapListToRecordsWithDeed(records))
       })
       .catch((e) => {
         if (!cancelled) {
@@ -102,6 +110,17 @@ export function HistoryPage() {
     return () => { cancelled = true }
   }, [])
 
+  const refetchHistoryRecords = useCallback(() => {
+    void api.deeds
+      .listAllRecordsWithDeedInfo()
+      .then((records) => {
+        setRecordsWithDeed(mapListToRecordsWithDeed(records))
+      })
+      .catch((e) => {
+        console.error(e?.message ?? e)
+      })
+  }, [])
+
   // --- Группировка по дате ---
   const byDate = useMemo(() => {
     const map = new Map<string, RecordWithDeed[]>()
@@ -115,7 +134,7 @@ export function HistoryPage() {
 
   // --- Рендер состояний ---
   if (loading) {
-    return <PageLoading title="" titleReserve actionsReserveCount={1} />
+    return <PageLoading title="" titleReserve actionsReserveCount={2} />
   }
 
   if (error) {
@@ -130,17 +149,21 @@ export function HistoryPage() {
   return (
     <Box
       className={layoutStyles.pageContainer}>
-      <AppBar title={`История`} 
-      actions={
-        <Badge 
-        size="2" 
-        color="gray" 
-        variant="soft"
-        radius="full"
-        >
-          {pluralRecords(recordsWithDeed.length)}
-        </Badge>
-      } />
+      <AppBar
+        title="История"
+        actions={
+          <Flex gap="2" align="center">
+            <Badge 
+            size="3" 
+            color="gray" 
+            variant="soft" 
+            radius="full">
+              {pluralRecords(recordsWithDeed.length)}
+            </Badge>
+            <OnboardingHelpButton flowId="help_history" />
+          </Flex>
+        }
+      />
 
       {byDate.length === 0 ? (
         <Flex
@@ -173,7 +196,7 @@ export function HistoryPage() {
           </Button>
         </Flex>
       ) : (
-        <Flex direction="column" gap="5" mt="2">
+        <Flex direction="column" gap="5">
           {byDate.map(([date, records], index) => {
             const recordYear = Number.parseInt(date.slice(0, 4), 10)
             const currentYear = new Date().getFullYear()
@@ -185,31 +208,33 @@ export function HistoryPage() {
             return (
             <Box key={date}>
               {showYearHeading ? (
-                <Heading as="h2" mb="2">
+                <Text as="p" size="9">
                   {recordYear}
-                </Heading>
-              ) : null}
-              <Flex justify="between" align="center" gap="2" mb="2">
-                <Text weight="medium">
-                  {formatDate(date)}
                 </Text>
-                <Badge 
-                size="2" 
-                color="gray" 
-                variant="soft"
-                radius="full"
-                >
-                  {records.length}
-                </Badge>
-              </Flex>
+              ) : null}
               <Flex direction="column" gap="2">
+                <Flex justify="between" align="center" gap="8">
+                  <Text as="p" size="3" color="gray">
+                    {formatDate(date)}
+                  </Text>
+                  <Badge
+                  size="3" 
+                  color="gray" 
+                  variant="soft"
+                  radius="full"
+                  >
+                    {records.length}
+                  </Badge>
+                </Flex>
                 {records.map((rec) => (
                   <RecordCard
-                    key={rec.id}
-                    record={rec}
-                    blocks={rec.deed?.blocks ?? []}
-                    deedPrefix={rec.deed ? { emoji: rec.deed.emoji, name: rec.deed.name } : undefined}
-                    linkState={{ from: 'history' }}
+                  key={rec.id}
+                  record={rec}
+                  blocks={rec.deed?.blocks ?? []}
+                  deedPrefix={rec.deed ? { emoji: rec.deed.emoji, name: rec.deed.name } : undefined}
+                  linkState={{ from: 'history' }}
+                  previewGray
+                  onRecordDeleted={refetchHistoryRecords}
                   />
                 ))}
               </Flex>

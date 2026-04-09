@@ -15,7 +15,7 @@ export function DeedDescriptionText({ text }: DeedDescriptionTextProps) {
   const segments = useMemo(() => parseDescriptionToSegments(text), [text]);
 
   return (
-    <Text as="p" color="gray" size="2" className={styles.root}>
+    <Text as="p" color="gray" size="3" className={styles.root}>
       {segments.map((seg, i) =>
         seg.type === "text" ? (
           <span key={i}>{seg.value}</span>

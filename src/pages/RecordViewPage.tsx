@@ -4,12 +4,14 @@ import { Link, useParams, useNavigate, useLocation } from 'react-router-dom'
 import { AlertDialog, Box, Button, Checkbox, CheckboxGroup, DropdownMenu, Flex, IconButton, SegmentedControl, Separator, Text, TextField, Badge } from '@radix-ui/themes'
 import { AUTO_GROW_TEXTAREA_MIN_ONE_LINE_PX, AutoGrowTextArea } from '@/components/AutoGrowTextArea'
 import { AppBar } from '@/components/AppBar'
+import { useOnboarding } from '@/lib/onboarding-context'
 import { SingleSelectAnswerField } from '@/components/SingleSelectAnswerField'
 import { FillFormNumberStepper } from '@/components/FillFormNumberStepper'
 import { PageLoading } from '@/components/PageLoading'
-import { ArrowTopLeftIcon, BackpackIcon, CheckIcon, CopyIcon, DotsHorizontalIcon } from '@radix-ui/react-icons'
+import { ArrowTopLeftIcon, BackpackIcon, CheckIcon, CopyIcon, DotsHorizontalIcon, Pencil1Icon, PlusIcon, QuestionMarkCircledIcon, TrashIcon } from '@radix-ui/react-icons'
 import { getSingleSelectUi } from '@/lib/block-config'
 import { api } from '@/lib/api'
+import { answersFromRecord } from '@/lib/answers-from-record'
 import type { BlockConfig, BlockRow, DeedWithBlocks, RecordAnswerRow, RecordWithAnswers, ValueJson } from '@/types/database'
 import { DatePicker } from '@/components/DatePicker'
 import { DurationInput } from '@/components/DurationInput'
@@ -65,16 +67,10 @@ function valueJsonEqual(a: ValueJson | undefined, b: ValueJson | undefined): boo
   }
 }
 
-/** Ответы из сущности записи — единый источник с сервера для просмотра и отката без сохранения. */
-function answersFromRecord(rec: RecordWithAnswers): Record<string, ValueJson> {
-  const ans: Record<string, ValueJson> = {}
-  for (const a of rec.record_answers ?? []) ans[a.block_id] = a.value_json
-  return ans
-}
-
 export function RecordViewPage() {
   const { id: recordId } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { openFlow } = useOnboarding()
   const location = useLocation()
   const fromHistory = (location.state as { from?: string } | null)?.from === 'history'
   const [record, setRecord] = useState<RecordWithAnswers | null>(null)
@@ -138,6 +134,22 @@ export function RecordViewPage() {
       })
     return () => { cancelled = true }
   }, [recordId, navigate])
+
+  // Вход в правку с списка (RecordCard): после загрузки записи снимаем флаг из state, иначе повторный заход откроет редактор снова.
+  useEffect(() => {
+    if (!record) return
+    const st = location.state as { openEditing?: boolean; from?: string } | null | undefined
+    if (!st?.openEditing) return
+    setEditAnswersBaseline(structuredClone(answersFromRecord(record)))
+    setEditing(true)
+    navigate(
+      { pathname: location.pathname, search: location.search, hash: location.hash },
+      {
+        replace: true,
+        state: st.from === 'history' ? { from: 'history' } : undefined,
+      },
+    )
+  }, [record, location.state, location.pathname, location.search, location.hash, navigate])
 
   const blocks = deed?.blocks ?? []
   const blocksById = Object.fromEntries((deed?.blocks ?? []).map((b) => [b.id, b]))
@@ -393,16 +405,37 @@ export function RecordViewPage() {
         title={editing ? 'Редактирование' : 'Запись'}
         actions={
           editing ? (
-            <IconButton
-              variant="classic"
-              radius="full"
-              size="3"
-              disabled={saving}
-              onClick={handleSave}
-              aria-label={saving ? 'Сохранение…' : 'Сохранить'}
-            >
-              <CheckIcon width={18} height={18} />
-            </IconButton>
+            <Flex gap="2" align="center">
+              <IconButton
+                variant="classic"
+                radius="full"
+                size="3"
+                disabled={saving}
+                onClick={handleSave}
+                aria-label={saving ? 'Сохранение…' : 'Сохранить'}
+              >
+                <CheckIcon />
+              </IconButton>
+              <DropdownMenu.Root>
+                <DropdownMenu.Trigger>
+                  <IconButton
+                    type="button"
+                    variant="classic"
+                    color="gray"
+                    radius="full"
+                    size="3"
+                    aria-label="Действия с записью"
+                  >
+                    <DotsHorizontalIcon />
+                  </IconButton>
+                </DropdownMenu.Trigger>
+                <DropdownMenu.Content variant="solid" size="2" align="end" sideOffset={8}>
+                  <DropdownMenu.Item onSelect={() => openFlow('help_record')}>
+                    Справка
+                  </DropdownMenu.Item>
+                </DropdownMenu.Content>
+              </DropdownMenu.Root>
+            </Flex>
           ) : (
             <Flex align="center" gap="2" wrap="wrap" justify="end">
               {/* Дублировать: новая запись с теми же ответами по блокам; дата/время — на форме «сейчас» */}
@@ -419,7 +452,7 @@ export function RecordViewPage() {
                   })
                 }
               >
-                <CopyIcon width={18} height={18} />
+                <CopyIcon />
               </IconButton>
               {/* К делу — только с экрана «История» */}
               {fromHistory && (
@@ -432,9 +465,10 @@ export function RecordViewPage() {
                   onClick={() => navigate(`/deeds/${record.deed_id}`)}
                   aria-label="Перейти к делу"
                 >
-                  <BackpackIcon width={18} height={18} />
+                  <BackpackIcon />
                 </IconButton>
               )}
+              <Separator orientation="vertical" />
               <DropdownMenu.Root>
                 <DropdownMenu.Trigger>
                   <IconButton
@@ -445,12 +479,19 @@ export function RecordViewPage() {
                     radius="full"
                     aria-label="Действия с записью"
                   >
-                    <DotsHorizontalIcon width={18} height={18} />
+                    <DotsHorizontalIcon />
                   </IconButton>
                 </DropdownMenu.Trigger>
-                <DropdownMenu.Content align="end" sideOffset={8}>
+                <DropdownMenu.Content variant="solid" size="2" align="end" sideOffset={8}>
                   <DropdownMenu.Item asChild>
-                    <Link to={`/deeds/${record.deed_id}/fill`}>Новая запись</Link>
+                    <Link to={`/deeds/${record.deed_id}`}> <BackpackIcon /> Перейти к делу</Link>
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Separator />
+                  <DropdownMenu.Item asChild>
+                    <Link to={`/deeds/${record.deed_id}/fill`}> <PlusIcon /> Новая запись</Link>
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Item asChild>
+                    <Link to={`/deeds/${record.deed_id}/fill`} state={{ fillDuplicateAnswers: answersFromRecord(record) }}> <CopyIcon /> Дублировать</Link>
                   </DropdownMenu.Item>
                   <DropdownMenu.Separator />
                   <DropdownMenu.Item
@@ -459,11 +500,15 @@ export function RecordViewPage() {
                       setEditing(true)
                     }}
                   >
-                    Редактировать
+                    <Pencil1Icon /> Редактировать
                   </DropdownMenu.Item>
                   <DropdownMenu.Separator />
                   <DropdownMenu.Item color="red" onSelect={() => openDeleteDialog()}>
-                    Удалить
+                    <TrashIcon /> Удалить
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Separator />
+                  <DropdownMenu.Item color="gray" onSelect={() => openFlow('help_record')}>
+                    <QuestionMarkCircledIcon /> Справка
                   </DropdownMenu.Item>
                 </DropdownMenu.Content>
               </DropdownMenu.Root>
@@ -481,7 +526,7 @@ export function RecordViewPage() {
                     onClick={handleUpdateAllOutdated}
                     aria-label={savingOutdated ? 'Сохранение…' : 'Актуализировать'}
                   >
-                    <CheckIcon width={18} height={18} />
+                    <CheckIcon />
                   </IconButton>
                 </>
               )}

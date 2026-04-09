@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { Link as RouterLink, useNavigate } from 'react-router-dom'
-import { Box, Button, Flex, Heading, IconButton, Link, RadioGroup, Text, TextField } from '@radix-ui/themes'
+import { Box, Button, DropdownMenu, Flex, Heading, IconButton, Link, RadioGroup, Text, TextField } from '@radix-ui/themes'
 import { AppBar } from '@/components/AppBar'
-import { ExitIcon } from '@radix-ui/react-icons'
+import { useOnboarding } from '@/lib/onboarding-context'
+import { DotsHorizontalIcon, ExitIcon, QuestionMarkCircledIcon } from '@radix-ui/react-icons'
 import { DatePicker } from '@/components/DatePicker'
 import { useAuth } from '@/lib/auth-context'
 import { supabase } from '@/lib/supabase'
@@ -29,6 +30,7 @@ function monthAgo(): string {
  */
 export function ProfilePage() {
   const navigate = useNavigate()
+  const { openFlow } = useOnboarding()
   const { user } = useAuth()
   const githubUrl = getGithubRepoUrl()
 
@@ -105,16 +107,29 @@ export function ProfilePage() {
       <AppBar
         title="Профиль"
         actions={
-          <IconButton
-            variant="classic"
-            color="red"
-            size="3"
-            radius="full"
-            onClick={handleSignOut}
-            aria-label="Выйти"
-          >
-            <ExitIcon width={18} height={18} />
-          </IconButton>
+          <DropdownMenu.Root>
+            <DropdownMenu.Trigger>
+              <IconButton
+                type="button"
+                variant="classic"
+                color="gray"
+                size="3"
+                radius="full"
+                aria-label="Меню профиля"
+              >
+                <DotsHorizontalIcon />
+              </IconButton>
+            </DropdownMenu.Trigger>
+            <DropdownMenu.Content variant="solid" size="2" align="end" sideOffset={8}>
+              <DropdownMenu.Item color="red" onSelect={() => void handleSignOut()}>
+                <ExitIcon /> Выйти
+              </DropdownMenu.Item>
+              <DropdownMenu.Separator />
+              <DropdownMenu.Item color="gray" onSelect={() => openFlow('help_profile')}>
+                <QuestionMarkCircledIcon /> Справка
+              </DropdownMenu.Item>
+            </DropdownMenu.Content>
+          </DropdownMenu.Root>
         }
       />
 

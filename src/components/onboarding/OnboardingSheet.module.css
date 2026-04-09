@@ -1,0 +1,60 @@
+/**
+ * Bottom sheet: прижимаем контент Radix Dialog к низу через :has() на обёртке скролла.
+ * Класс onboardingSheetContent вешается на Dialog.Content.
+ */
+:global(.rt-DialogScrollPadding:has(.onboardingSheetContent)) {
+  margin-top: auto !important;
+  margin-bottom: 0;
+  padding-left: var(--space-2);
+  padding-right: var(--space-2);
+  padding-bottom: max(var(--space-2), env(safe-area-inset-bottom, 0px));
+  align-items: stretch;
+}
+
+.sheetContent.onboardingSheetContent {
+  width: 100%;
+  max-width: 100%;
+  max-height: min(88vh, 720px);
+  margin-bottom: 0 !important;
+  margin-top: 0;
+  border-radius: var(--radius-5) var(--radius-5) 0 0;
+  box-sizing: border-box;
+}
+
+/* Верхняя строка: крестик справа */
+.sheetHeader {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+  padding-bottom: var(--space-2);
+}
+
+/* Заглушка под иллюстрацию (пока нет картинок в шагах) */
+.imagePlaceholder {
+  width: 100%;
+  max-width: 400px;
+  aspect-ratio: 1/1;
+  border-radius: var(--radius-3);
+  background: var(--gray-a3);
+  border: 1px dashed var(--gray-a6);
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.imageWrap {
+  width: 100%;
+  aspect-ratio: 1/1;
+  border-radius: var(--radius-3);
+  overflow: hidden;
+  background: var(--gray-a3);
+}
+
+.imageWrap img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1/1;
+  object-fit: contain;
+}

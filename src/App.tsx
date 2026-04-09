@@ -18,6 +18,9 @@ const ProfilePage = lazy(() => import('@/pages/ProfilePage').then((m) => ({ defa
 const HistoryPage = lazy(() => import('@/pages/HistoryPage').then((m) => ({ default: m.HistoryPage })))
 const WidgetsPage = lazy(() => import('@/pages/WidgetsPage').then((m) => ({ default: m.WidgetsPage })))
 const ClickerPage = lazy(() => import('@/pages/ClickerPage').then((m) => ({ default: m.ClickerPage })))
+const PageErrorPreviewPage = lazy(() =>
+  import('@/pages/PageErrorPreviewPage').then((m) => ({ default: m.PageErrorPreviewPage })),
+)
 const PrivacyPolicyPage = lazy(() => import('@/pages/PrivacyPolicyPage').then((m) => ({ default: m.PrivacyPolicyPage })))
 const TermsOfUsePage = lazy(() => import('@/pages/TermsOfUsePage').then((m) => ({ default: m.TermsOfUsePage })))
 
@@ -57,6 +60,7 @@ function App() {
               <Route path="/widgets/clicker" element={<ClickerPage />} />
               <Route path="/history" element={<HistoryPage />} />
               <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/error-preview" element={<PageErrorPreviewPage />} />
               <Route path="/privacy" element={<PrivacyPolicyPage />} />
               <Route path="/terms" element={<TermsOfUsePage />} />
             </Routes>

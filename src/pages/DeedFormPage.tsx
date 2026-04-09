@@ -21,6 +21,7 @@ import {
   Tabs,
   Text,
   TextField,
+  Separator,
 } from "@radix-ui/themes";
 import {
   AutoGrowTextArea,
@@ -28,6 +29,7 @@ import {
   AUTO_GROW_TEXTAREA_MIN_TWO_LINES_PX,
 } from "@/components/AutoGrowTextArea";
 import { AppBar } from "@/components/AppBar";
+import { OnboardingHelpButton } from "@/components/onboarding/OnboardingHelpButton";
 import { PageLoading } from "@/components/PageLoading";
 import { DurationInput } from "@/components/DurationInput";
 import { EmojiPickerButton } from "@/components/EmojiPickerButton";
@@ -933,7 +935,7 @@ export function DeedFormPage() {
         backButtonIcon="close"
         title=""
         titleReserve
-        actionsReserveCount={1}
+        actionsReserveCount={2}
       />
     );
   }
@@ -945,16 +947,20 @@ export function DeedFormPage() {
         backButtonIcon="close"
         title={isNew ? "Новое дело" : "Редактирование дела"}
         actions={
-          <IconButton
-            size="3"
-            variant="classic"
-            radius='full'
-            disabled={saving}
-            onClick={() => formRef.current?.requestSubmit()}
-            aria-label={saving ? "Сохранение…" : "Сохранить дело"}
-          >
-            <CheckIcon width={18} height={18} />
-          </IconButton>
+          <Flex gap="2" align="center">
+            <OnboardingHelpButton flowId="help_deed_form" />
+            <Separator orientation="vertical" />
+            <IconButton
+              size="3"
+              variant="classic"
+              radius="full"
+              disabled={saving}
+              onClick={() => formRef.current?.requestSubmit()}
+              aria-label={saving ? "Сохранение…" : "Сохранить дело"}
+            >
+              <CheckIcon />
+            </IconButton>
+          </Flex>
         }
       />
 

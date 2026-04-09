@@ -3,12 +3,14 @@ import { Link } from 'react-router-dom'
 import { Box, Button, DropdownMenu, Flex, Heading, IconButton, Text } from '@radix-ui/themes'
 import { AppBar } from '@/components/AppBar'
 import { PageLoading } from '@/components/PageLoading'
+import { PageErrorState } from '@/components/PageErrorState'
 import { api } from '@/lib/api'
 import { DeedCard } from '@/components/DeedCard'
 import type { DeedWithBlocks } from '@/types/database'
 import layoutStyles from '@/styles/layout.module.css'
 import type { RecordRow, RecordAnswerRow } from '@/types/database'
-import { DotsHorizontalIcon, PlusIcon } from '@radix-ui/react-icons'
+import { DotsHorizontalIcon, PlusIcon, QuestionMarkCircledIcon } from '@radix-ui/react-icons'
+import { useOnboarding } from '@/lib/onboarding-context'
 
 /**
  * Страница списка дел.
@@ -18,6 +20,7 @@ import { DotsHorizontalIcon, PlusIcon } from '@radix-ui/react-icons'
  * счётчики записей (сегодня/всего) доподгружаются вторым запросом незаметно.
  */
 export function DeedsListPage() {
+  const { openFlow } = useOnboarding()
   // --- Состояние ---
   const [deeds, setDeeds] = useState<DeedWithBlocks[]>([])
   const [recordsByDeedId, setRecordsByDeedId] = useState<Record<string, (RecordRow & { record_answers?: RecordAnswerRow[] })[]>>({})
@@ -89,10 +92,24 @@ export function DeedsListPage() {
   }
 
   if (error) {
+    const networkHint =
+      /failed to fetch|load failed/i.test(error)
+        ? 'Проверьте интернет и что приложение может обращаться к серверу. Затем обновите страницу.'
+        : 'Попробуйте обновить страницу. Если ошибка повторяется — зайдите позже.'
     return (
-      <Box p="4">
-        <Text color="crimson">{error}</Text>
-      </Box>
+      <Flex direction="column" style={{ flex: 1, minHeight: 0, width: '100%' }}>
+        <Box className={layoutStyles.pageContainer}>
+          <AppBar title="" titleReserve actionsReserveCount={1} />
+        </Box>
+        <Box className={layoutStyles.pageContainer} style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <PageErrorState
+            withPageContainer={false}
+            title="Не удалось загрузить дела"
+            description={networkHint}
+            code={error}
+          />
+        </Box>
+      </Flex>
     )
   }
 
@@ -107,35 +124,35 @@ export function DeedsListPage() {
         /* Основные действия главной — в overflow-меню (позже добавим пункты). «Создать» не дублируем текстовой кнопкой. */
         actions={
           <Flex mr="4">
-
-          <DropdownMenu.Root>
-            <DropdownMenu.Trigger>
-              <IconButton
-                type="button"
-                size="4"
-                color="gray"
-                variant="ghost"
-                aria-label="Меню действий"
+            <DropdownMenu.Root>
+              <DropdownMenu.Trigger>
+                <IconButton
+                  type="button"
+                  size="4"
+                  color="gray"
+                  variant="ghost"
+                  aria-label="Меню действий"
                 >
-                <DotsHorizontalIcon width={18} height={18} />
-              </IconButton>
-            </DropdownMenu.Trigger>
-            <DropdownMenu.Content align="end" sideOffset={8}>
-              <DropdownMenu.Item asChild>
-                <Link to="/deeds/new">Создать дело</Link>
-              </DropdownMenu.Item>
-              <DropdownMenu.Item asChild>
-                <Link to="#">Запустить обучение</Link>
-              </DropdownMenu.Item>
-            </DropdownMenu.Content>
-          </DropdownMenu.Root>
-                </Flex>
+                  <DotsHorizontalIcon />
+                </IconButton>
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Content variant="solid" size="2" align="end" sideOffset={8}>
+                <DropdownMenu.Item asChild>
+                  <Link to="/deeds/new"> <PlusIcon /> Создать дело</Link>
+                </DropdownMenu.Item>
+                <DropdownMenu.Separator />
+                <DropdownMenu.Item color="gray" onSelect={() => openFlow('help_deeds_list')}>
+                  <QuestionMarkCircledIcon /> Справка
+                </DropdownMenu.Item>
+              </DropdownMenu.Content>
+            </DropdownMenu.Root>
+          </Flex>
         }
       />
 
       {/* Фильтр по категориям (скрыт, если нет дел или категорий) */}
       {deeds.length > 0 && categories.length > 0 && (
-        <Flex gap="2" mt="4" mb="4" wrap="wrap">
+        <Flex gap="2" mb="5" wrap="wrap">
           <Button
             type="button"
             color='gray'
