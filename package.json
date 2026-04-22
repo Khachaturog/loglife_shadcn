@@ -8,6 +8,7 @@
     "dev:mobile": "concurrently \"VITE_TUNNEL=1 vite\" \"npx localtunnel --port 5173\"",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "test": "vitest run",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -40,6 +41,7 @@
     "supabase": "^2.76.8",
     "typescript": "~5.6.2",
     "typescript-eslint": "^8.15.0",
-    "vite": "^6.0.1"
+    "vite": "^6.0.1",
+    "vitest": "^2.1.9"
   }
 }

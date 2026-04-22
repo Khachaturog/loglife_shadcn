@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { Link, useParams, useNavigate, useLocation } from 'react-router-dom'
-import { AlertDialog, Box, Button, Checkbox, CheckboxGroup, DropdownMenu, Flex, IconButton, Separator, Text, TextField, Badge } from '@radix-ui/themes'
+import { AlertDialog, Box, Button, Card, Checkbox, CheckboxGroup, DropdownMenu, Flex, IconButton, Separator, Text, TextField, Badge } from '@radix-ui/themes'
 import { AUTO_GROW_TEXTAREA_MIN_ONE_LINE_PX, AutoGrowTextArea } from '@/components/AutoGrowTextArea'
 import { AppBar } from '@/components/AppBar'
 import { useOnboarding } from '@/lib/onboarding-context'
 import { SingleSelectAnswerField } from '@/components/SingleSelectAnswerField'
 import { FillFormNumberStepper } from '@/components/FillFormNumberStepper'
 import { PageLoading } from '@/components/PageLoading'
-import { ArrowTopLeftIcon, BackpackIcon, CheckIcon, CopyIcon, DotsHorizontalIcon, Pencil1Icon, PlusIcon, QuestionMarkCircledIcon, TrashIcon } from '@radix-ui/react-icons'
+import { ArrowTopLeftIcon, BackpackIcon, CheckIcon, CopyIcon, DotsHorizontalIcon, Pencil1Icon, PlusIcon, QuestionMarkCircledIcon, ResetIcon, TrashIcon } from '@radix-ui/react-icons'
 import { getSingleSelectUi } from '@/lib/block-config'
 import { api } from '@/lib/api'
 import { answersFromRecord } from '@/lib/answers-from-record'
@@ -16,6 +16,7 @@ import type { BlockConfig, BlockRow, DeedWithBlocks, RecordAnswerRow, RecordWith
 import { DatePicker } from '@/components/DatePicker'
 import { DurationInput } from '@/components/DurationInput'
 import { ScaleAnswerField } from '@/components/ScaleAnswerField'
+import { valueJsonMatchesBlockType } from '@/lib/block-value-type-conversion'
 import { formatAnswer, formatRecordDateTimeDisplay } from '@/lib/format-utils'
 import { blurInputOnEnter } from '@/lib/ios-input-blur'
 import layoutStyles from '@/styles/layout.module.css'
@@ -27,6 +28,12 @@ function getBlockOptions(block: BlockRow): { id: string; label: string }[] {
 }
 
 type ConfigVersionData = { scale?: { divisions: number; labels: (string | null)[] }; options?: { id: string; label: string; sort_order: number }[] }
+
+/** Несовпадение формы value_json с текущим типом/конфигом блока (в т.ч. после смены типа в деле). */
+function isAnswerShapeOutdated(block: BlockRow | null, valueJson: unknown): boolean {
+  if (!block || block.deleted_at) return false
+  return !valueJsonMatchesBlockType(block, valueJson)
+}
 
 function isConfigOutdated(block: BlockRow | null, versionConfig: ConfigVersionData | null): boolean {
   if (!block) return true
@@ -165,7 +172,9 @@ export function RecordViewPage() {
       const block = blocksById[ans.block_id] ?? null
       const versionConfig = ans.config_version_id ? configByVersion[ans.config_version_id] : null
       const blockDeleted = block?.deleted_at != null
-      const out = !block || blockDeleted || isConfigOutdated(block, versionConfig)
+      const shapeOut = block && !blockDeleted && isAnswerShapeOutdated(block, ans.value_json)
+      const out =
+        !block || blockDeleted || isConfigOutdated(block, versionConfig) || shapeOut
       const optionsOverride = versionConfig?.options?.map((o) => ({ id: o.id, label: o.label }))
       const title = block?.title ?? 'Блок'
       if (out) outdated.push({ block, ans, title, optionsOverride })
@@ -296,7 +305,10 @@ export function RecordViewPage() {
   const outdatedBlocksList = nonDeletedBlocks.filter((block) => {
     const ans = answersByBlockId[block.id] as (RecordAnswerRow & { config_version_id?: string | null }) | undefined
     const versionConfig = ans?.config_version_id ? configByVersion[ans.config_version_id] : null
-    return !!(ans && isConfigOutdated(block, versionConfig))
+    return !!(
+      ans &&
+      (isConfigOutdated(block, versionConfig) || isAnswerShapeOutdated(block, ans.value_json))
+    )
   })
   const hasOutdatedBlocks = outdatedBlocksList.length > 0
   const hasUnfilledBlocks = unfilledBlocksList.length > 0
@@ -516,44 +528,48 @@ export function RecordViewPage() {
 
       {editing ? (
         <Flex direction="column" gap="4">
-
-          <Flex direction="column" gap="1">
-            <Text size="3" weight="medium" as="label" htmlFor="deed">Дело</Text>
-            <Text size="3">{deed?.name}</Text>
-          </Flex>
-
-          <Flex gap="3" wrap="wrap">
-            <Flex direction="column" gap="1">
-              <Text size="3" weight="medium" as="label" htmlFor="date">Дата</Text>
-              <DatePicker value={recordDate} onChange={setRecordDate} />
+          {/* Как на форме новой записи: дело + дата/время в одной карточке */}
+          <Card>
+            <Flex direction="column" gap="3">
+              <Flex direction="column" gap="1">
+                <Text size="3" weight="medium" as="label" htmlFor="deed">Дело</Text>
+                <Text size="3">{deed?.name}</Text>
+              </Flex>
+              <Flex gap="3" wrap="wrap">
+                <Flex direction="column" gap="1">
+                  <Text size="3" weight="medium" as="label" htmlFor="date">Дата</Text>
+                  <DatePicker value={recordDate} onChange={setRecordDate} />
+                </Flex>
+                <Flex direction="column" gap="1">
+                  <Text size="3" weight="medium" as="label" htmlFor="time">Время</Text>
+                  <TextField.Root
+                    size="3"
+                    type="time"
+                    value={recordTime}
+                    onChange={(e) => setRecordTime(e.target.value)}
+                    onKeyDown={blurInputOnEnter}
+                  />
+                </Flex>
+              </Flex>
             </Flex>
-
-            <Flex direction="column" gap="1">
-              <Text size="3" weight="medium" as="label" htmlFor="time">Время</Text>
-              <TextField.Root
-                size="3"
-                type="time"
-                value={recordTime}
-                onChange={(e) => setRecordTime(e.target.value)}
-                onKeyDown={blurInputOnEnter}
-              />
-            </Flex>
-          </Flex>
+          </Card>
 
           {blocks.filter((b) => !b.deleted_at).map((block) => (
-            <Flex key={block.id} direction="column" gap="1">
-              <Flex direction="row" align="center" gap="3" wrap="wrap">
-                <Text size="2" weight="medium">{block.title}</Text>
+            <Card key={block.id}>
+            <Flex direction="column" gap="1">
+              <Flex direction="row" align="baseline" gap="3" wrap="wrap" mr="2px">
+                <Text size="3" weight="medium"  style={{ flex: 1, minWidth: 0 }}>{block.title}</Text>
                 {isEditBlockDirty(block.id) && block.block_type !== 'yes_no' && (
-                  <Button
-                    type="button"
-                    size="2"
-                    variant="ghost"
-                    color="gray"
+                  <IconButton
+                  type="button"
+                  size="3"
+                  variant="ghost"
+                  color="red"
+                  radius="large"
                     onClick={() => resetEditBlock(block.id)}
                   >
-                    Сбросить
-                  </Button>
+                    <ResetIcon />
+                  </IconButton>
                 )}
               </Flex>
               {block.block_type === 'number' && (
@@ -675,25 +691,30 @@ export function RecordViewPage() {
                 </Text>
               )}
             </Flex>
+            </Card>
           ))}
         </Flex>
       ) : (
         <Flex direction="column" gap="4" >
-
-          <Box>
-            <Text size="3" color="gray" weight="medium">Дело</Text>
-            <Text as="p" size="3">{deed?.name}</Text>
-          </Box>
-
-          <Box>
-            <Text size="3" color="gray" weight="medium">Дата</Text>
-            <Text as="p" size="3">{formatRecordDateTimeDisplay(record.record_date, record.record_time)}</Text>
-          </Box>
+          <Card>
+            <Flex direction="column" gap="3">
+              <Box>
+                <Text size="3" color="gray" weight="medium">Дело</Text>
+                <Text as="p" size="3">{deed?.name}</Text>
+              </Box>
+              <Box>
+                <Text size="3" color="gray" weight="medium">Дата</Text>
+                <Text as="p" size="3">{formatRecordDateTimeDisplay(record.record_date, record.record_time)}</Text>
+              </Box>
+            </Flex>
+          </Card>
 
           {blocks.filter((b) => !b.deleted_at).map((block) => {
             const ans = answersByBlockId[block.id] as (RecordAnswerRow & { config_version_id?: string | null }) | undefined
             const versionConfig = ans?.config_version_id ? configByVersion[ans.config_version_id] : null
-            const outdated = ans && isConfigOutdated(block, versionConfig)
+            const outdated =
+              ans &&
+              (isConfigOutdated(block, versionConfig) || isAnswerShapeOutdated(block, ans.value_json))
             const unfilled = !ans
             const value = ans?.value_json
             const optionsOverride = versionConfig?.options?.map((o) => ({ id: o.id, label: o.label }))
@@ -702,20 +723,20 @@ export function RecordViewPage() {
               if (block.block_type === 'yes_no' && value) {
                 const done = (value as { yesNo: boolean }).yesNo === true
                 return (
-                  <Box key={block.id}>
+                  <Card key={block.id}>
                     <Text size="3" color="gray" weight="medium">{block.title}</Text>
                     <Flex align="center" gap="2" mt="1">
                       <Checkbox size="3" disabled checked={done} />
                       <Text size="3">{done ? 'Выполнено' : 'Не выполнено'}</Text>
                     </Flex>
-                  </Box>
+                  </Card>
                 )
               }
               return (
-                <Box key={block.id}>
+                <Card key={block.id}>
                   <Text size="3" color="gray" weight="medium">{block.title}</Text>
                   <Text as="p" size="3">{value ? formatAnswer(value, block, optionsOverride) : '—'}</Text>
-                </Box>
+                </Card>
               )
             }
 
@@ -724,21 +745,19 @@ export function RecordViewPage() {
             const draft = updateDraft[block.id] ?? (unfilled ? undefined : getMigratedValue(block, oldVal))
 
             return (
-              <Box key={block.id}>
-                <Flex align="center" gap="2" wrap="wrap">
-                  <Text size="3" color="gray" weight="medium">
-                    {block.title}
-                  </Text>
-                  {outdated && (
-                    <Badge size="2" color="amber" variant="surface">
-                      Устарело
-                    </Badge>
-                  )}
-                  {unfilled && (
-                    <Badge size="2" color="orange" variant="surface">
-                      Не заполнено
-                    </Badge>
-                  )}
+              <Card key={block.id}>
+                <Flex align="baseline" gap="2">
+                  <Box flexGrow="1" minWidth="0">
+                    <Text size="3" color="gray" weight="medium" wrap="wrap">{block.title}</Text>
+                  </Box>
+                  <Flex gap="2" wrap="wrap" flexShrink="0">
+                    {outdated && (
+                      <Badge size="3" color="amber" variant="surface">Устарело</Badge>
+                    )}
+                    {unfilled && (
+                      <Badge size="3" color="orange" variant="surface">Не заполнено</Badge>
+                    )}
+                  </Flex>
                 </Flex>
                 {value && block.block_type === 'yes_no' ? (
                   <Flex align="center" gap="2" mt="1">
@@ -754,10 +773,10 @@ export function RecordViewPage() {
                 )}
                 <Flex direction="column" gap="1">
                   <Flex direction="row" align="center" gap="3" wrap="wrap">
-                    <Flex direction="row" align="center" gap="1">
+                    {/* <Flex direction="row" align="center" gap="1">
                       <ArrowTopLeftIcon />
                       <Text weight="medium" size="2">Обнови блок</Text>
-                    </Flex>
+                    </Flex> */}
                     {updateDraft[block.id] != null && block.block_type !== 'yes_no' && (
                       <Button
                         type="button"
@@ -888,7 +907,7 @@ export function RecordViewPage() {
                     </Text>
                   )}
                 </Flex>
-              </Box>
+              </Card>
             )
           })}
           {outdatedAnswers.filter(({ block }) => block?.deleted_at != null).length > 0 && (
@@ -903,17 +922,25 @@ export function RecordViewPage() {
                   const scaleConfig = versionConfig?.scale
                   const configStr = scaleConfig ? formatScaleConfig(scaleConfig) : null
                   return (
-                    <Flex direction="column" gap="1" key={ans.id}>
-                      <Flex direction="row" align="center" gap="2" wrap="wrap"> 
-                        <Text weight="medium" size="3" color="gray">{title}</Text>
-                        <Badge size="2" color="red" variant="surface">Блок удалён</Badge>
+                    <Card key={ans.id}>
+                      <Flex direction="column" gap="1">
+                        <Flex align="start" gap="2">
+                          <Box flexGrow="1" minWidth="0">
+                            <Text weight="medium" size="3" color="gray" wrap="wrap">
+                              {title}
+                            </Text>
+                          </Box>
+                          <Box flexShrink="0">
+                            <Badge size="3" color="red" variant="surface">Блок удалён</Badge>
+                          </Box>
+                        </Flex>
+                        <Flex direction="row" align="center" gap="2" wrap="wrap">
+                          <Text as="p" size="3">{ans.value_json ? formatAnswer(ans.value_json, block ?? ({} as BlockRow), optionsOverride) : '—'}</Text>
+                          <Text size="3" color="gray">·</Text>
+                          {configStr && <Text as="p" size="3">Раньше было от 1 до {configStr}</Text>}
+                        </Flex>
                       </Flex>
-                      <Flex direction="row" align="center" gap="2" wrap="wrap">
-                        <Text as="p" size="3">{ans.value_json ? formatAnswer(ans.value_json, block ?? ({} as BlockRow), optionsOverride) : '—'}</Text>
-                        <Text size="3" color="gray">·</Text>
-                        {configStr && <Text as="p" size="3">Раньше было от 1 до {configStr}</Text>}
-                      </Flex>
-                    </Flex>
+                    </Card>
                   )
                 })}
 

@@ -26,14 +26,14 @@
   display: flex;
   justify-content: flex-end;
   width: 100%;
-  padding-bottom: var(--space-2);
+  /* padding-bottom: var(--space-2); */
 }
 
 /* Заглушка под иллюстрацию (пока нет картинок в шагах) */
 .imagePlaceholder {
   width: 100%;
-  max-width: 400px;
-  aspect-ratio: 1/1;
+  /* max-width: 200px; */
+  aspect-ratio: 16/9;
   border-radius: var(--radius-3);
   background: var(--gray-a3);
   border: 1px dashed var(--gray-a6);
@@ -46,15 +46,15 @@
 
 .imageWrap {
   width: 100%;
-  aspect-ratio: 1/1;
-  border-radius: var(--radius-3);
+  aspect-ratio: 16/9;
+  /* border-radius: var(--radius-3); */
   overflow: hidden;
-  background: var(--gray-a3);
+  /* background: var(--gray-a3); */
 }
 
 .imageWrap img {
   display: block;
   width: 100%;
-  aspect-ratio: 1/1;
+  aspect-ratio: 16/9;
   object-fit: contain;
 }

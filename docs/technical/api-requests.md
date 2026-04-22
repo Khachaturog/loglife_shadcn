@@ -16,9 +16,10 @@
 | api.deeds | `get(id)` | deeds, blocks | DeedViewPage, FillFormPage, DeedFormPage, RecordViewPage, export-csv |
 | api.deeds | `create()` | deeds (в т.ч. `analytics_config`, `quick_add_defaults_enabled`), blocks | DeedFormPage |
 | api.deeds | `update()` | deeds (в т.ч. `analytics_config`, `quick_add_defaults_enabled`), blocks | DeedFormPage |
+| api.deeds | `applyBlockTypeChangeAndMigrateAnswers()` | blocks, record_answers, block_config_versions (+ дочерние при необходимости) | DeedFormPage (модалка смены типа блока) |
 | api.deeds | `delete()` | deeds | DeedViewPage |
 | api.deeds | `deleteBlock()` | deeds, blocks | DeedFormPage |
-| api.deeds | `records(deedId)` | deeds, records, record_answers | DeedViewPage, export-csv |
+| api.deeds | `records(deedId)` | deeds, records, record_answers | DeedViewPage, DeedFormPage (модалка смены типа), export-csv |
 | api.deeds | `recentRecords(deedId, limit?)` | deeds, records, record_answers | FillFormPage |
 | api.deeds | `recordsByDeedIds(ids)` | deeds, records, record_answers | DeedsListPage |
 | api.deeds | `listAllRecordsWithDeedInfo()` | records, record_answers, deeds | HistoryPage |
@@ -121,6 +122,17 @@ WHERE id = :id AND user_id = :uid
 2. При изменении блоков: `SELECT blocks`, `UPDATE`/`INSERT`/soft-delete блоков (в `config` у `single_select` передаётся `singleSelectUi` при сохранении)
 
 **Используется:** DeedFormPage (редактирование)
+
+---
+
+### `api.deeds.applyBlockTypeChangeAndMigrateAnswers(deedId, blockRow, migrations)`
+
+**Запросы:**
+1. `SELECT deeds`, `SELECT blocks` — проверка доступа и существования блока
+2. `UPDATE blocks` — поля блока после смены типа (`block_type`, `config`, `default_value`, …)
+3. Для каждой пары в `migrations`: `findOrCreateConfigVersion(blockRow)` (один раз на блок), `UPDATE record_answers` по `record_id` + `block_id` — `value_json`, `config_version_id`
+
+**Используется:** DeedFormPage (подтверждение модалки смены типа блока)
 
 ---
 

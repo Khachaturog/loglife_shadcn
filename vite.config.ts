@@ -5,6 +5,10 @@ import path from 'path'
 export default defineConfig({
   base: process.env.BASE_PATH || '/',
   plugins: [react()],
+  test: {
+    environment: 'node',
+    include: ['src/**/*.test.ts'],
+  },
   server: {
     host: true,
     port: 5173,

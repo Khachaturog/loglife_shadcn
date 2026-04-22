@@ -43,12 +43,12 @@ export function OnboardingSheet({ open, onOpenChange, flowId, steps }: Props) {
         className={`${styles.sheetContent} onboardingSheetContent`}
         size="3"
         width="100%"
-        maxWidth="400px"
+        maxWidth="600px"
       >
         <Flex direction="column" gap="2">
           {/* Кнопка закрыть — справа вверху */}
           <div className={styles.sheetHeader}>
-            <Dialog.Close>
+            {/* <Dialog.Close>
               <IconButton
                 type="button"
                 size="4"
@@ -59,7 +59,7 @@ export function OnboardingSheet({ open, onOpenChange, flowId, steps }: Props) {
               >
                 <Cross2Icon />
               </IconButton>
-            </Dialog.Close>
+            </Dialog.Close> */}
           </div>
 
           {/* Заглушка под иллюстрацию; при появлении imageSrc — реальное изображение */}
@@ -73,7 +73,7 @@ export function OnboardingSheet({ open, onOpenChange, flowId, steps }: Props) {
           ) : (
             <Box className={styles.imagePlaceholder}>
               <Text size="2" color="gray">
-                Иллюстрация появится здесь
+                Иллюстрация появится позже
               </Text>
             </Box>
           )}

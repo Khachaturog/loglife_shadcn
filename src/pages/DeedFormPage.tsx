@@ -24,6 +24,7 @@ import {
   TextField,
   Separator,
 } from "@radix-ui/themes";
+import { BlockTypeChangePreviewDialog } from "@/components/BlockTypeChangePreviewDialog";
 import {
   AutoGrowTextArea,
   AUTO_GROW_TEXTAREA_MAX_PX,
@@ -48,7 +49,22 @@ import {
 } from "@/lib/block-default-value";
 import { blurActiveInputInForm, blurInputOnEnter } from "@/lib/ios-input-blur";
 import { getSingleSelectUi } from "@/lib/block-config";
-import type { BlockConfig, BlockType, DeedWithBlocks, ValueJson } from "@/types/database";
+import type {
+  BlockConfig,
+  BlockType,
+  DeedWithBlocks,
+  RecordAnswerRow,
+  RecordRow,
+  ValueJson,
+} from "@/types/database";
+import {
+  blockRowFromUiForApi,
+  buildBlockTypeChangePreviewRows,
+  isBlockedTypeTransition,
+  supportsAutomaticAnswerMigration,
+  type BlockTypeChangePreviewRow,
+  type DurationNumberUnit,
+} from "@/lib/block-value-type-conversion";
 import type { DeedAnalyticsConfigV1 } from "@/types/deed-analytics-config";
 import { DEFAULT_DEED_ANALYTICS_CONFIG } from "@/types/deed-analytics-config";
 import { normalizeDeedAnalyticsConfig } from "@/lib/deed-analytics-config";
@@ -112,6 +128,32 @@ function createDefaultSelectConfig(): BlockConfig {
       { id: createOptionId(), label: "", sort_order: 1 },
     ],
     singleSelectUi: "select",
+  };
+}
+
+/** Следующее состояние блока после смены типа (как в селекторе до модалки). */
+function computeNextUiBlockAfterTypeChange(b: UiBlock, nextType: BlockType): UiBlock {
+  let nextConfig: BlockConfig | null = b.config;
+  if (nextType === "scale") nextConfig = createDefaultScaleConfig();
+  else if (nextType === "single_select" || nextType === "multi_select") {
+    if (b.config?.options?.length) {
+      nextConfig =
+        nextType === "single_select"
+          ? {
+              options: [...b.config!.options!],
+              singleSelectUi: getSingleSelectUi(b.config),
+            }
+          : { options: [...b.config!.options!] };
+    } else {
+      nextConfig = createDefaultSelectConfig();
+    }
+  } else nextConfig = null;
+  return {
+    ...b,
+    block_type: nextType,
+    config: nextConfig,
+    default_value: null,
+    default_value_enabled: false,
   };
 }
 
@@ -574,7 +616,7 @@ function ScaleBlockConfig({
   const hasMiddle = divisions > 2;
   return (
     <Flex direction="column" gap="1" mt="2">
-      <Text as="label" size="2" weight="medium">
+      <Text as="span" size="2" weight="medium">
         Делений (1–10)
       </Text>
       <TextField.Root
@@ -594,7 +636,7 @@ function ScaleBlockConfig({
       />
       <Flex direction="row" align="center" gap="3">
 
-      <Text as="label" size="2" color="gray" weight="medium" mt="1">
+      <Text as="span" size="2" color="gray" weight="medium" mt="1">
          <ArrowBottomRightIcon /> 1
       </Text>
       <TextField.Root
@@ -624,7 +666,7 @@ function ScaleBlockConfig({
               {Array.from({ length: divisions - 2 }, (_, i) => i + 1).map(
                 (i) => (
                   <Flex key={i} direction="row" align="center" gap="3">
-                    <Text as="label" size="2" color="gray" weight="medium">
+                    <Text as="span" size="2" color="gray" weight="medium">
                     <ArrowBottomRightIcon /> {i + 1}
                     </Text>
                     <TextField.Root
@@ -641,7 +683,7 @@ function ScaleBlockConfig({
             </Flex>
           )}
           <Flex direction="row" align="center" gap="3">
-          <Text as="label" size="2" color="gray" weight="medium">
+          <Text as="span" size="2" color="gray" weight="medium">
           <ArrowBottomRightIcon /> {divisions}
           </Text>
           <TextField.Root
@@ -710,6 +752,19 @@ export function DeedFormPage() {
   const [blockDefaultErrorIndices, setBlockDefaultErrorIndices] = useState<
     number[]
   >([]);
+
+  /** Модалка смены типа блока: превью ответов и подтверждение миграции. */
+  const [typeChangeModal, setTypeChangeModal] = useState<null | {
+    blockIndex: number;
+    nextType: BlockType;
+    snapshot: UiBlock;
+    loading: boolean;
+    error: string | null;
+    records: (RecordRow & { record_answers?: RecordAnswerRow[] })[];
+    durationUnit: DurationNumberUnit;
+    rows: BlockTypeChangePreviewRow[];
+  }>(null);
+  const [typeChangeConfirmBusy, setTypeChangeConfirmBusy] = useState(false);
 
   /** Сброс подсветок при изменении состава/порядка блоков (индексы ошибок перестают совпадать) */
   function clearAllSubmitValidation() {
@@ -856,6 +911,104 @@ export function DeedFormPage() {
   /** Обновить блок по индексу — updater получает текущий блок и возвращает новый */
   function updateBlock(index: number, updater: (block: UiBlock) => UiBlock) {
     setBlocks((prev) => prev.map((b, i) => (i === index ? updater(b) : b)));
+  }
+
+  /** Модалка: загрузка записей и расчёт строк превью. */
+  async function openTypeChangeModal(blockIndex: number, nextType: BlockType) {
+    const snap = blocks[blockIndex];
+    if (!id || !snap.id) return;
+    setTypeChangeModal({
+      blockIndex,
+      nextType,
+      snapshot: structuredClone(snap) as UiBlock,
+      loading: true,
+      error: null,
+      records: [],
+      durationUnit: "minutes",
+      rows: [],
+    });
+    try {
+      const records = await api.deeds.records(id);
+      const snapshotRow = blockRowFromUiForApi({ ...snap, id: snap.id }, id, blockIndex);
+      const rows = buildBlockTypeChangePreviewRows({
+        records,
+        blockId: snap.id,
+        nextType,
+        snapshotAsBlockRow: snapshotRow,
+        durationUnit: "minutes",
+      });
+      setTypeChangeModal((prev) =>
+        prev && prev.blockIndex === blockIndex && prev.nextType === nextType
+          ? { ...prev, loading: false, records, rows, error: null }
+          : prev,
+      );
+    } catch (e) {
+      setTypeChangeModal((prev) =>
+        prev
+          ? {
+              ...prev,
+              loading: false,
+              error: e instanceof Error ? e.message : "Ошибка загрузки записей",
+            }
+          : null,
+      );
+    }
+  }
+
+  function setTypeChangeDurationUnit(u: DurationNumberUnit) {
+    if (!id) return;
+    setTypeChangeModal((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, durationUnit: u };
+      const snapshotRow = blockRowFromUiForApi(
+        { ...next.snapshot, id: next.snapshot.id! },
+        id,
+        next.blockIndex,
+      );
+      const rows = buildBlockTypeChangePreviewRows({
+        records: next.records,
+        blockId: next.snapshot.id!,
+        nextType: next.nextType,
+        snapshotAsBlockRow: snapshotRow,
+        durationUnit: u,
+      });
+      return { ...next, rows };
+    });
+  }
+
+  async function handleTypeChangeConfirm() {
+    if (!typeChangeModal || !id) return;
+    const { blockIndex, nextType, snapshot, rows } = typeChangeModal;
+    const currentUi = blocks[blockIndex];
+    // Пока модалка открыта, тип в форме не менялся — если расходится, закрываем без записи.
+    if (currentUi.block_type !== snapshot.block_type) {
+      setTypeChangeModal(null);
+      return;
+    }
+    const updated = computeNextUiBlockAfterTypeChange(currentUi, nextType);
+    const blockRow = blockRowFromUiForApi({ ...updated, id: updated.id! }, id, blockIndex);
+    const migrations = rows
+      .filter((r) => r.willMigrate && r.newValue)
+      .map((r) => ({ recordId: r.recordId, valueJson: r.newValue! }));
+    setTypeChangeConfirmBusy(true);
+    try {
+      await api.deeds.applyBlockTypeChangeAndMigrateAnswers(id, blockRow, migrations);
+      updateBlock(blockIndex, () => updated);
+      setSelectOptionFieldErrors((prev) => prev.filter((k) => !k.startsWith(`${blockIndex}-`)));
+      setSelectBlocksNoOptions((prev) => prev.filter((i) => i !== blockIndex));
+      setTypeChangeModal(null);
+    } catch (e) {
+      setTypeChangeModal((prev) =>
+        prev
+          ? {
+              ...prev,
+              error: e instanceof Error ? e.message : "Не удалось обновить блок и ответы",
+            }
+          : null,
+      );
+    } finally {
+      setTypeChangeConfirmBusy(false);
+    }
   }
 
   /** Поменять блок местами с соседом (вверх/вниз) */
@@ -1085,13 +1238,13 @@ export function DeedFormPage() {
 
           <Flex direction="row" gap="4">
             <Flex direction="column" gap="1">
-            <Text size="2" weight="medium" as="label" htmlFor="emoji">
+            <Text size="2" weight="medium" as="label" htmlFor="emoji" className={styles.formFieldLabel}>
               Эмодзи
             </Text>
             <EmojiPickerButton value={emoji} onChange={setEmoji} />
             </Flex>
             <Flex direction="column" gap="1" className={styles.nameField}>
-              <Text size="2" weight="medium" as="label" htmlFor="name">
+              <Text size="2" weight="medium" as="label" htmlFor="name" className={styles.formFieldLabel}>
                 Название
               </Text>
               <TextField.Root
@@ -1116,7 +1269,7 @@ export function DeedFormPage() {
           </Flex>
 
           <Flex direction="column" gap="1">
-            <Text size="2" weight="medium" as="label" htmlFor="description">
+            <Text size="2" weight="medium" as="label" htmlFor="description" className={styles.formFieldLabel}>
               Описание
             </Text>
             <AutoGrowTextArea
@@ -1130,7 +1283,7 @@ export function DeedFormPage() {
             />
           </Flex>
           <Flex direction="column" gap="1">
-            <Text size="2" weight="medium" as="label" htmlFor="category">
+            <Text size="2" weight="medium" as="label" htmlFor="category" className={styles.formFieldLabel}>
               Категория
             </Text>
             {/* __none__ = пусто, __custom__ = своё значение (показываем TextField ниже) */}
@@ -1246,55 +1399,39 @@ export function DeedFormPage() {
 
                 <Flex direction="column" gap="2">
                   <Flex direction="column" gap="1">
-                    <Text as="label" size="2" weight="medium">
+                    <Text as="span" size="2" weight="medium">
                       Тип
                     </Text>
                     <Select.Root
                       size="3"
                       value={block.block_type}
                       onValueChange={(nextType) => {
-                        // Сбрасываем ошибки вариантов для этого блока — тип сменился
+                        const nt = nextType as BlockType;
+                        if (nt === block.block_type) return;
+                        if (isBlockedTypeTransition(block.block_type, nt)) return;
                         setSelectOptionFieldErrors((prev) =>
                           prev.filter((k) => !k.startsWith(`${index}-`)),
                         );
                         setSelectBlocksNoOptions((prev) =>
                           prev.filter((i) => i !== index),
                         );
-                        updateBlock(index, (b) => {
-                          let nextConfig: BlockConfig | null = b.config;
-                          if (nextType === "scale")
-                            nextConfig = createDefaultScaleConfig();
-                          else if (
-                            nextType === "single_select" ||
-                            nextType === "multi_select"
-                          ) {
-                            if (b.config?.options?.length) {
-                              nextConfig =
-                                nextType === "single_select"
-                                  ? {
-                                      options: [...b.config!.options!],
-                                      singleSelectUi: getSingleSelectUi(b.config),
-                                    }
-                                  : { options: [...b.config!.options!] };
-                            } else {
-                              nextConfig = createDefaultSelectConfig();
-                            }
-                          } else nextConfig = null;
-                          return {
-                            ...b,
-                            block_type: nextType as BlockType,
-                            config: nextConfig,
-                            default_value: null,
-                            default_value_enabled: false,
-                          };
-                        });
+                        // Новый блок или дело ещё не сохранено — миграции нет, сразу меняем тип в форме.
+                        if (!block.id || isNew) {
+                          updateBlock(index, (b) => computeNextUiBlockAfterTypeChange(b, nt));
+                          return;
+                        }
+                        void openTypeChangeModal(index, nt);
                       }}
                     >
                       <Select.Trigger />
                       <Select.Content className={styles.selectContentConstrained}>
                         {(Object.keys(BLOCK_TYPE_LABEL) as BlockType[]).map(
                           (t) => (
-                            <Select.Item key={t} value={t}>
+                            <Select.Item
+                              key={t}
+                              value={t}
+                              disabled={isBlockedTypeTransition(block.block_type, t)}
+                            >
                               {BLOCK_TYPE_LABEL[t]}
                             </Select.Item>
                           ),
@@ -1304,7 +1441,7 @@ export function DeedFormPage() {
                   </Flex>
 
                   <Flex direction="column" gap="1">
-                    <Text as="label" size="2" weight="medium">
+                    <Text as="span" size="2" weight="medium">
                       Вопрос
                     </Text>
                     <TextField.Root
@@ -1378,7 +1515,7 @@ export function DeedFormPage() {
                   block.block_type === "multi_select") && (
                     
                   <Flex direction="column" gap="2" mt="2">
-                    <Text as="label" size="2" weight="medium" mb="-1">
+                    <Text as="span" size="2" weight="medium" mb="-1">
                       Варианты
                     </Text>
                     {selectBlocksNoOptions.includes(index) ? (
@@ -1807,7 +1944,7 @@ export function DeedFormPage() {
                 {analyticsConfig.summary.enabled ? (
                   <>
                   <Flex direction="column" gap="1">
-                    <Text as="label" size="2" weight="medium" htmlFor="analytics-summary-block">
+                    <Text as="label" size="2" weight="medium" htmlFor="analytics-summary-block" className={styles.formFieldLabel}>
                       Блок для суммы
                     </Text>
                     <Select.Root
@@ -2058,7 +2195,7 @@ export function DeedFormPage() {
                   <>
                   <Flex direction="column" gap="1">
 
-                    <Text as="label" size="2" weight="medium" htmlFor="analytics-heatmap-block">
+                    <Text as="label" size="2" weight="medium" htmlFor="analytics-heatmap-block" className={styles.formFieldLabel}>
                       Расчёт по блоку
                     </Text>
 
@@ -2104,7 +2241,7 @@ export function DeedFormPage() {
                   </Flex>
 
                   <Flex direction="column" gap="1">
-                    <Text as="label"  size="2" weight="medium" htmlFor="deed-card-color-select">
+                    <Text as="label" size="2" weight="medium" htmlFor="deed-card-color-select" className={styles.formFieldLabel}>
                       Цвет квадратов
                     </Text>
                       <Flex align="center" gap="3" wrap="wrap">
@@ -2246,6 +2383,31 @@ export function DeedFormPage() {
           </Tabs.Content>
         </Tabs.Root>
       </form>
+
+      {typeChangeModal && id ? (
+        <BlockTypeChangePreviewDialog
+          open
+          onOpenChange={(o) => {
+            if (!o) setTypeChangeModal(null);
+          }}
+          blockTitle={typeChangeModal.snapshot.title}
+          fromTypeLabel={BLOCK_TYPE_LABEL[typeChangeModal.snapshot.block_type]}
+          toTypeLabel={BLOCK_TYPE_LABEL[typeChangeModal.nextType]}
+          loading={typeChangeModal.loading}
+          error={typeChangeModal.error}
+          rows={typeChangeModal.rows}
+          supportsMigrate={supportsAutomaticAnswerMigration(typeChangeModal.nextType)}
+          showDurationUnit={
+            typeChangeModal.snapshot.block_type === "duration" &&
+            typeChangeModal.nextType === "number"
+          }
+          durationUnit={typeChangeModal.durationUnit}
+          onDurationUnitChange={setTypeChangeDurationUnit}
+          onConfirm={() => void handleTypeChangeConfirm()}
+          onCancel={() => setTypeChangeModal(null)}
+          confirmBusy={typeChangeConfirmBusy}
+        />
+      ) : null}
 
       <AlertDialog.Root open={quickAddOptInOpen} onOpenChange={setQuickAddOptInOpen}>
         <AlertDialog.Content maxWidth="450px">

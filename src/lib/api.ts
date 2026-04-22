@@ -343,6 +343,66 @@ export const api = {
       }
     },
 
+    /**
+     * Смена типа блока с миграцией ответов: сначала строка `blocks`, затем `record_answers`.
+     * Вызывается из модалки подтверждения в DeedFormPage (согласованность БД сразу после подтверждения).
+     */
+    async applyBlockTypeChangeAndMigrateAnswers(
+      deedId: string,
+      blockRow: BlockRow,
+      migrations: { recordId: string; valueJson: ValueJson }[],
+    ): Promise<void> {
+      const uid = await getUserIdOrThrow()
+      const { data: deed } = await supabase.from('deeds').select('id').eq('id', deedId).eq('user_id', uid).single()
+      if (!deed) throw new Error('Дело не найдено')
+      const { data: blockCheck } = await supabase
+        .from('blocks')
+        .select('id')
+        .eq('id', blockRow.id)
+        .eq('deed_id', deedId)
+        .is('deleted_at', null)
+        .single()
+      if (!blockCheck) throw new Error('Блок не найден')
+
+      const { error: blockErr } = await supabase
+        .from('blocks')
+        .update({
+          sort_order: blockRow.sort_order,
+          title: blockRow.title,
+          block_type: blockRow.block_type,
+          is_required: blockRow.is_required,
+          default_value: blockRow.default_value ?? null,
+          default_value_enabled: blockRow.default_value_enabled ?? false,
+          recent_suggestions_enabled: blockRow.recent_suggestions_enabled ?? true,
+          config: blockRow.config,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', blockRow.id)
+      if (blockErr) {
+        console.error(blockErr.message ?? 'Ошибка обновления блока')
+        throw blockErr
+      }
+
+      const configVersionId = await findOrCreateConfigVersion(blockRow)
+      for (const m of migrations) {
+        const { data: existing } = await supabase
+          .from('record_answers')
+          .select('id')
+          .eq('record_id', m.recordId)
+          .eq('block_id', blockRow.id)
+          .maybeSingle()
+        if (!existing?.id) continue
+        const { error: ansErr } = await supabase
+          .from('record_answers')
+          .update({ value_json: m.valueJson, config_version_id: configVersionId, updated_at: new Date().toISOString() })
+          .eq('id', existing.id)
+        if (ansErr) {
+          console.error(ansErr.message ?? 'Ошибка обновления ответа')
+          throw ansErr
+        }
+      }
+    },
+
     async delete(id: string): Promise<void> {
       const uid = await getUserIdOrThrow()
       const { data: deed } = await supabase.from('deeds').select('id').eq('id', id).eq('user_id', uid).single()

@@ -183,3 +183,15 @@
 .blockAdditionalAccordionTrigger[data-state="open"] .blockAdditionalAccordionChevron {
   transform: rotate(180deg);
 }
+
+/**
+ * Radix Themes для `Text as="label"`: на `pointer: coarse` задаётся outline при :active
+ * (широкая серая полоса), из‑за чего подписи выглядят как нажимаемые / «с ховером».
+ * Для реальных label с htmlFor оставляем семантику, убираем только этот эффект.
+ */
+@media (pointer: coarse) {
+  .formFieldLabel:active {
+    outline: none !important;
+    outline-offset: 0 !important;
+  }
+}
