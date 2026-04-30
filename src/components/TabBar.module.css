@@ -74,6 +74,7 @@
   }
 
   .tabActive {
+    min-height: 52px;
     border-radius: var(--radius-5);
   }
 
